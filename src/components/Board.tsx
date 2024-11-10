@@ -7,7 +7,7 @@ import {minimax} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 
 const Board: React.FC = () => {
-  const [squares, setSquares] = useState<Array<string | null>>(Array(9).fill(null));
+  const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
   const [mode, setMode] = useState<"solo" | "multiplayer" | null>(null);
@@ -61,8 +61,8 @@ const Board: React.FC = () => {
       const openingMoves = [4, 0, 2, 6, 8];
       const move = openingMoves.find((index) => squares[index] === null);
       if (move !== undefined) {
-        const newSquares = squares.slice();
-        newSquares[move] = aiSymbol;
+        const newSquares = squares.slice(); // Garder le type "X" | "O" | null
+        (newSquares[move] as "X" | "O" | null) = aiSymbol;
         setSquares(newSquares);
         setIsXNext(true);
         return;
