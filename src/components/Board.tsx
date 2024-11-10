@@ -11,6 +11,7 @@ const Board: React.FC = () => {
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
   const [startingPlayer, setStartingPlayer] = useState<"player" | "ai" | null>(null);
+  const [nextStartingPlayer, setNextStartingPlayer] = useState<"player" | "ai">("player");
   const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("X");
   const [aiSymbol, setAiSymbol] = useState<"X" | "O">("O");
   const [playerScore, setPlayerScore] = useState(0);
@@ -47,7 +48,7 @@ const Board: React.FC = () => {
 
   // Fonction pour que l'IA joue son coup
   const makeAIMove = useCallback(() => {
-    if (isXNext || winner) return; // Ne pas jouer si ce n'est pas le tour de l'IA ou si le jeu est terminé
+    if (isXNext || winner) return;
 
     let bestScore = -Infinity;
     let move = -1;
@@ -94,6 +95,9 @@ const Board: React.FC = () => {
       } else if (currentWinner === "Draw") {
         setDrawScore((prev) => prev + 1);
       }
+
+      // Inverser le joueur qui commence pour la prochaine partie
+      setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
       return;
     }
 
@@ -103,12 +107,9 @@ const Board: React.FC = () => {
     }
   }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated]);
 
-  // Réinitialiser le jeu correctement
+  // Réinitialiser le jeu en utilisant le prochain joueur
   const resetGame = () => {
-    setSquares(Array(9).fill(null));
-    setIsXNext(startingPlayer === "player");
-    setWinner(null);
-    setScoreUpdated(false);
+    initializeGame(nextStartingPlayer);
   };
 
   return (
