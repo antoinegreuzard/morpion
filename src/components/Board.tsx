@@ -56,7 +56,7 @@ const Board: React.FC = () => {
       if (squares[i] === null) {
         const newSquares = squares.slice();
         newSquares[i] = aiSymbol;
-        const score = minimax(newSquares, 0, aiSymbol !== "O", -Infinity, Infinity);
+        const score = minimax(newSquares, 0, aiSymbol !== "O", -Infinity, Infinity, aiSymbol, playerSymbol);
         if (score > bestScore) {
           bestScore = score;
           move = i;
@@ -70,7 +70,7 @@ const Board: React.FC = () => {
       setSquares(newSquares);
       setIsXNext(true);
     }
-  }, [squares, aiSymbol, isXNext, winner]);
+  }, [squares, aiSymbol, playerSymbol, isXNext, winner]);
 
   // Appeler l'IA après que l'utilisateur a fait un choix ou cliqué sur "Rejouer"
   useEffect(() => {
