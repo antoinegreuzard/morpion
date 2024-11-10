@@ -50,6 +50,20 @@ const Board: React.FC = () => {
   const makeAIMove = useCallback(() => {
     if (isXNext || winner) return;
 
+    // Si c'est le premier coup de l'IA, jouer au centre ou dans un coin
+    if (squares.every((square) => square === null)) {
+      const openingMoves = [4, 0, 2, 6, 8]; // Centre et coins
+      const move = openingMoves.find((index) => squares[index] === null);
+      if (move !== undefined) {
+        const newSquares = squares.slice();
+        newSquares[move] = aiSymbol;
+        setSquares(newSquares);
+        setIsXNext(true);
+        return;
+      }
+    }
+
+    // Utiliser l'algorithme minimax pour déterminer le meilleur coup
     let bestScore = -Infinity;
     let move = -1;
 
