@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
 import {minimax} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
@@ -9,14 +9,20 @@ const Board: React.FC = () => {
   const [squares, setSquares] = useState<Array<string | null>>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
-  const [startingPlayer, setStartingPlayer] = useState<"X" | "O" | null>(null);
+  const [startingPlayer, setStartingPlayer] = useState<"player" | "ai" | null>(null);
 
   // Initialiser le jeu
-  const initializeGame = (firstPlayer: "X" | "O") => {
+  const initializeGame = (firstPlayer: "player" | "ai") => {
     setSquares(Array(9).fill(null));
-    setIsXNext(firstPlayer === "X");
+    setIsXNext(firstPlayer === "player");
     setStartingPlayer(firstPlayer);
     setWinner(null);
+
+    // Si l'IA commence, elle joue immédiatement avec "X"
+    if (firstPlayer === "ai") {
+      makeAIMove("X");
+      setIsXNext(false);
+    }
   };
 
   const handleClick = (index: number) => {
@@ -29,15 +35,15 @@ const Board: React.FC = () => {
   };
 
   // Fonction pour que l'IA joue son coup
-  const makeAIMove = () => {
+  const makeAIMove = useCallback((player: "X" | "O" = "O") => {
     let bestScore = -Infinity;
     let move = -1;
 
     for (let i = 0; i < squares.length; i++) {
       if (squares[i] === null) {
         const newSquares = squares.slice();
-        newSquares[i] = "O";
-        const score = minimax(newSquares, 0, false);
+        newSquares[i] = player;
+        const score = minimax(newSquares, 0, player !== "O");
         if (score > bestScore) {
           bestScore = score;
           move = i;
@@ -47,11 +53,11 @@ const Board: React.FC = () => {
 
     if (move !== -1) {
       const newSquares = squares.slice();
-      newSquares[move] = "O";
+      newSquares[move] = player;
       setSquares(newSquares);
-      setIsXNext(true);
+      setIsXNext(player === "O");
     }
-  };
+  }, [squares]);
 
   // Appeler l'IA quand c'est son tour
   useEffect(() => {
@@ -61,10 +67,11 @@ const Board: React.FC = () => {
       return;
     }
 
-    if (!isXNext && startingPlayer === "O" && !winner) {
-      makeAIMove();
+    // Si c'est le tour de l'IA, elle joue avec "O"
+    if (!isXNext && startingPlayer === "player" && !winner) {
+      makeAIMove("O");
     }
-  }, [squares, isXNext, winner, startingPlayer]);
+  }, [squares, isXNext, winner, startingPlayer, makeAIMove]);
 
   return (
     <div>
@@ -74,15 +81,15 @@ const Board: React.FC = () => {
           <h2 className="text-2xl font-bold">Choisissez qui commence :</h2>
           <button
             className="px-4 py-2 m-2 bg-blue-500 text-white rounded"
-            onClick={() => initializeGame("X")}
+            onClick={() => initializeGame("player")}
           >
-            Joueur (X)
+            Joueur commence (X)
           </button>
           <button
             className="px-4 py-2 m-2 bg-red-500 text-white rounded"
-            onClick={() => initializeGame("O")}
+            onClick={() => initializeGame("ai")}
           >
-            IA (O)
+            IA commence (X)
           </button>
         </div>
       )}
@@ -90,7 +97,7 @@ const Board: React.FC = () => {
       {/* Plateau de jeu */}
       {startingPlayer && (
         <div>
-          <h1 className="text-3xl font-bold mb-4">
+          <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
             {winner
               ? winner === "Draw"
                 ? "Match nul !"
