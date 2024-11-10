@@ -1,6 +1,12 @@
 import {checkWinner} from "./checkWinner";
 
-export const minimax = (board: (string | null)[], depth: number, isMaximizing: boolean): number => {
+export const minimax = (
+  board: (string | null)[],
+  depth: number,
+  isMaximizing: boolean,
+  alpha: number,
+  beta: number
+): number => {
   const winner = checkWinner(board);
 
   // Évaluation de l'état du plateau
@@ -14,9 +20,13 @@ export const minimax = (board: (string | null)[], depth: number, isMaximizing: b
     for (let i = 0; i < board.length; i++) {
       if (board[i] === null) {
         board[i] = "O";
-        const score = minimax(board, depth + 1, false);
+        const score = minimax(board, depth + 1, false, alpha, beta);
         board[i] = null;
         bestScore = Math.max(score, bestScore);
+        alpha = Math.max(alpha, score);
+
+        // Pruning
+        if (beta <= alpha) break;
       }
     }
     return bestScore;
@@ -28,9 +38,13 @@ export const minimax = (board: (string | null)[], depth: number, isMaximizing: b
     for (let i = 0; i < board.length; i++) {
       if (board[i] === null) {
         board[i] = "X";
-        const score = minimax(board, depth + 1, true);
+        const score = minimax(board, depth + 1, true, alpha, beta);
         board[i] = null;
         bestScore = Math.min(score, bestScore);
+        beta = Math.min(beta, score);
+
+        // Pruning
+        if (beta <= alpha) break;
       }
     }
     return bestScore;

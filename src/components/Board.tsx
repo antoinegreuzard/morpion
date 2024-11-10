@@ -43,7 +43,7 @@ const Board: React.FC = () => {
       if (squares[i] === null) {
         const newSquares = squares.slice();
         newSquares[i] = player;
-        const score = minimax(newSquares, 0, player !== "O");
+        const score = minimax(newSquares, 0, player !== "O", -Infinity, Infinity);
         if (score > bestScore) {
           bestScore = score;
           move = i;
