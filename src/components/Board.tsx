@@ -3,7 +3,7 @@
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
 import ScoreBoard from "@/components/ScoreBoard";
-import {minimax} from "@/utils/minimax";
+import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 
 const Board: React.FC = () => {
@@ -22,6 +22,8 @@ const Board: React.FC = () => {
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
+    resetMemo();
+
     setSquares(Array(9).fill(null));
     setIsXNext(firstPlayer === "player");
     setStartingPlayer(firstPlayer);
