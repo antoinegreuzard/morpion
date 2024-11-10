@@ -2,6 +2,7 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
+import ScoreBoard from "@/components/ScoreBoard";
 import {minimax} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 
@@ -10,6 +11,10 @@ const Board: React.FC = () => {
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
   const [startingPlayer, setStartingPlayer] = useState<"player" | "ai" | null>(null);
+  const [playerScore, setPlayerScore] = useState(0);
+  const [aiScore, setAiScore] = useState(0);
+  const [drawScore, setDrawScore] = useState(0);
+  const [scoreUpdated, setScoreUpdated] = useState(false);
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -17,12 +22,9 @@ const Board: React.FC = () => {
     setIsXNext(firstPlayer === "player");
     setStartingPlayer(firstPlayer);
     setWinner(null);
+    setScoreUpdated(false);
 
-    // Si l'IA commence, elle joue immédiatement avec "X"
-    if (firstPlayer === "ai") {
-      makeAIMove("X");
-      setIsXNext(false);
-    }
+    // L'IA ne joue pas immédiatement ici
   };
 
   const handleClick = (index: number) => {
@@ -59,19 +61,45 @@ const Board: React.FC = () => {
     }
   }, [squares]);
 
-  // Appeler l'IA quand c'est son tour
+  // Appeler l'IA après que l'utilisateur a fait un choix ou cliqué sur "Rejouer"
+  useEffect(() => {
+    if (startingPlayer === "ai" && !winner && squares.every((square) => square === null)) {
+      makeAIMove("X");
+      setIsXNext(false);
+    }
+  }, [startingPlayer, squares, winner, makeAIMove]);
+
+  // Mettre à jour le score et vérifier le tour de l'IA
   useEffect(() => {
     const currentWinner = checkWinner(squares);
-    if (currentWinner) {
+    if (currentWinner && !scoreUpdated) {
       setWinner(currentWinner);
+      setScoreUpdated(true);
+
+      // Mettre à jour le score
+      if (currentWinner === "X") {
+        setPlayerScore((prev) => prev + 1);
+      } else if (currentWinner === "O") {
+        setAiScore((prev) => prev + 1);
+      } else if (currentWinner === "Draw") {
+        setDrawScore((prev) => prev + 1);
+      }
       return;
     }
 
-    // Si c'est le tour de l'IA, elle joue avec "O"
-    if (!isXNext && startingPlayer === "player" && !winner) {
-      makeAIMove("O");
+    // Si c'est le tour de l'IA
+    if (!isXNext && !winner && startingPlayer !== null) {
+      makeAIMove(isXNext ? "X" : "O");
     }
-  }, [squares, isXNext, winner, startingPlayer, makeAIMove]);
+  }, [squares, isXNext, winner, startingPlayer, makeAIMove, scoreUpdated]);
+
+  // Réinitialiser le jeu correctement
+  const resetGame = () => {
+    setSquares(Array(9).fill(null));
+    setIsXNext(true);
+    setWinner(null);
+    setScoreUpdated(false);
+  };
 
   return (
     <div>
@@ -94,6 +122,9 @@ const Board: React.FC = () => {
         </div>
       )}
 
+      {/* Affichage du score via le composant ScoreBoard */}
+      <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+
       {/* Plateau de jeu */}
       {startingPlayer && (
         <div>
@@ -110,6 +141,16 @@ const Board: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Bouton pour réinitialiser le jeu */}
+      {winner && (
+        <button
+          className="mt-4 px-4 py-2 bg-gray-500 text-white rounded"
+          onClick={resetGame}
+        >
+          Rejouer
+        </button>
       )}
     </div>
   );
