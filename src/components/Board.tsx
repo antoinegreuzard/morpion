@@ -127,33 +127,37 @@ const Board: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="flex flex-col items-center">
       {/* Menu de sélection du joueur */}
       {!startingPlayer && (
-        <div className="mb-4">
-          <h2 className="text-2xl font-bold">Choisissez qui commence :</h2>
-          <button
-            className="px-4 py-2 m-2 bg-blue-500 text-white rounded"
-            onClick={() => initializeGame("player")}
-          >
-            Joueur commence (X)
-          </button>
-          <button
-            className="px-4 py-2 m-2 bg-red-500 text-white rounded"
-            onClick={() => initializeGame("ai")}
-          >
-            IA commence (X)
-          </button>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-center mb-4">Choisissez qui commence :</h2>
+          <div className="flex justify-center">
+            <button
+              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600"
+              onClick={() => initializeGame("player")}
+            >
+              Joueur commence (X)
+            </button>
+            <button
+              className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600"
+              onClick={() => initializeGame("ai")}
+            >
+              IA commence (X)
+            </button>
+          </div>
         </div>
       )}
 
       {/* Affichage du score via le composant ScoreBoard */}
-      <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+      <div className="w-full max-w-md mb-8">
+        <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+      </div>
 
       {/* Plateau de jeu */}
       {startingPlayer && (
         <div>
-          <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
+          <h1 className={`text-3xl font-bold mb-6 ${winner ? "animate-bounce text-green-500" : ""}`}>
             {winner
               ? winner === "Draw"
                 ? "Match nul !"
@@ -171,7 +175,7 @@ const Board: React.FC = () => {
       {/* Bouton pour réinitialiser le jeu */}
       {winner && (
         <button
-          className="mt-4 px-4 py-2 bg-gray-500 text-white rounded"
+          className="mt-6 px-6 py-3 bg-gray-700 text-white rounded-lg shadow-lg hover:bg-gray-800"
           onClick={resetGame}
         >
           Rejouer
