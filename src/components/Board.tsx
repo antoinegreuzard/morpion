@@ -58,13 +58,13 @@ const Board: React.FC = () => {
   const makeAIMove = useCallback(() => {
     if (isXNext || winner || mode !== "solo") return;
 
-    // Si c'est le premier coup de l'IA, jouer au centre ou dans un coin
-    if (squares.every((square) => square === null)) {
-      const openingMoves = [4, 0, 2, 6, 8];
-      const move = openingMoves.find((index) => squares[index] === null);
+    // Ouverture spécifique pour "O" si "X" joue le centre
+    if (squares[4] === playerSymbol && squares.every((square) => square === null || square === playerSymbol)) {
+      const cornerMoves = [0, 2, 6, 8];
+      const move = cornerMoves.find((index) => squares[index] === null);
       if (move !== undefined) {
-        const newSquares = squares.slice(); // Garder le type "X" | "O" | null
-        (newSquares[move] as "X" | "O" | null) = aiSymbol;
+        const newSquares = squares.slice();
+        newSquares[move] = aiSymbol;
         setSquares(newSquares);
         setIsXNext(true);
         return;
