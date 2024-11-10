@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tic-Tac-Toe en Next.js avec IA (Minimax)
 
-## Getting Started
+Ce projet est un jeu de **Tic-Tac-Toe** développé en **Next.js** avec **TypeScript**, utilisant l'algorithme **Minimax**
+pour l'IA. Il propose également un mode **Multijoueur** pour jouer contre un autre joueur.
 
-First, run the development server:
+## 🛠️ Technologies Utilisées
+
+- **Next.js** (React avec App Router)
+- **TypeScript** pour un typage robuste
+- **Tailwind CSS** pour le style
+- **Minimax** pour l'algorithme d'IA
+- **pnpm** pour la gestion des paquets
+
+## 🚀 Fonctionnalités
+
+- **Solo** : Joueur contre IA
+- **Multijoueur** : Deux joueurs sur le même appareil
+- **Choix du mode de jeu** : Sélection du mode Solo ou Multijoueur
+- **Sélection du premier joueur** : Choisissez qui commence (Joueur ou IA)
+- **Algorithme Minimax optimisé** pour une IA performante
+- **Détection automatique du gagnant** et affichage du score
+- **Interface réactive et moderne** avec Tailwind CSS
+
+## 📦 Installation
+
+1. Clonez le dépôt :
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/antoinegreuzard/morpion.git tic-tac-toe
+cd tic-tac-toe
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Installez les dépendances avec **pnpm** :
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Lancez le serveur de développement :
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Accédez à l'application dans votre navigateur à [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🧠 Algorithme Minimax
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+L'algorithme **Minimax** est utilisé pour évaluer tous les coups possibles et choisir le meilleur pour l'IA. Il maximise
+les chances de victoire de l'IA tout en minimisant celles du joueur humain.
 
-## Deploy on Vercel
+### Exemple d'évaluation :
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **X gagne** : Score de -10
+- **O gagne** : Score de +10
+- **Match nul** : Score de 0
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📁 Arborescence du Projet
+
+```
+tic-tac-toe/
+├── public/
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── Board.tsx
+│   │   └── Square.tsx
+│   ├── utils/
+│   │   ├── checkWinner.ts
+│   │   └── minimax.ts
+├── .eslintrc.json
+├── tailwind.config.js
+├── tsconfig.json
+├── next.config.js
+├── package.json
+└── README.md
+```
+
+## 📝 Licence
+
+Ce projet est sous licence MIT. Vous pouvez l'utiliser librement.
+
+## 👤 Auteur
+
+Développé par Antoine Greuzard.
