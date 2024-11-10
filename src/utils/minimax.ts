@@ -13,14 +13,14 @@ export const resetMemo = (): void => {
 
 /**
  * Fonction d'évaluation améliorée pour analyser les positions intermédiaires.
- * Prend en compte les stratégies de la vidéo.
+ * Prend en compte les stratégies de la vidéo et améliore la défense.
  */
 const evaluateBoard = (board: (string | null)[], aiSymbol: "X" | "O", playerSymbol: "X" | "O"): number => {
   const corners = [0, 2, 6, 8];
   const edges = [1, 3, 5, 7];
   let score = 0;
 
-  // Prioriser le contrôle des coins (stratégie optimale de la vidéo)
+  // Prioriser le contrôle des coins
   for (const corner of corners) {
     if (board[corner] === aiSymbol) score += 3;
     if (board[corner] === playerSymbol) score -= 3;
@@ -36,7 +36,7 @@ const evaluateBoard = (board: (string | null)[], aiSymbol: "X" | "O", playerSymb
     if (board[edge] === playerSymbol) score -= 1;
   }
 
-  // Prévoir les forks (double menace)
+  // Prévoir et créer des forks
   if (board[4] === aiSymbol) {
     for (const corner of corners) {
       if (board[corner] === aiSymbol) score += 5;
@@ -52,7 +52,24 @@ const evaluateBoard = (board: (string | null)[], aiSymbol: "X" | "O", playerSymb
 };
 
 /**
- * Fonction minimax optimisée avec Alpha-Beta Pruning et utilisation de la forme canonique.
+ * Vérifie si l'adversaire a une opportunité de gagner et retourne l'index à bloquer.
+ */
+const findWinningMove = (board: (string | null)[], symbol: "X" | "O"): number | null => {
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === null) {
+      board[i] = symbol;
+      const winner = checkWinner(board);
+      board[i] = null;
+      if (winner === symbol) {
+        return i;
+      }
+    }
+  }
+  return null;
+};
+
+/**
+ * Fonction minimax optimisée avec Alpha-Beta Pruning et défense améliorée.
  */
 export const minimax = (
   board: (string | null)[],
@@ -85,6 +102,12 @@ export const minimax = (
   // Limiter la profondeur pour améliorer la performance
   if (depth >= maxDepth) {
     return evaluateBoard(board, aiSymbol, playerSymbol);
+  }
+
+  // Détection d'un coup gagnant pour l'adversaire
+  const opponentWinningMove = findWinningMove(board, playerSymbol);
+  if (opponentWinningMove !== null) {
+    return isMaximizing ? -10 + depth : 10 - depth;
   }
 
   // Maximiser pour l'IA
