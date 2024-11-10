@@ -11,6 +11,8 @@ const Board: React.FC = () => {
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
   const [startingPlayer, setStartingPlayer] = useState<"player" | "ai" | null>(null);
+  const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("X");
+  const [aiSymbol, setAiSymbol] = useState<"X" | "O">("O");
   const [playerScore, setPlayerScore] = useState(0);
   const [aiScore, setAiScore] = useState(0);
   const [drawScore, setDrawScore] = useState(0);
@@ -24,28 +26,37 @@ const Board: React.FC = () => {
     setWinner(null);
     setScoreUpdated(false);
 
-    // L'IA ne joue pas immédiatement ici
+    // Définir les symboles en fonction du joueur qui commence
+    if (firstPlayer === "player") {
+      setPlayerSymbol("X");
+      setAiSymbol("O");
+    } else {
+      setPlayerSymbol("O");
+      setAiSymbol("X");
+    }
   };
 
   const handleClick = (index: number) => {
-    if (squares[index] || winner || startingPlayer === null) return;
+    if (squares[index] || winner || startingPlayer === null || !isXNext) return;
 
     const newSquares = squares.slice();
-    newSquares[index] = isXNext ? "X" : "O";
+    newSquares[index] = playerSymbol;
     setSquares(newSquares);
-    setIsXNext(!isXNext);
+    setIsXNext(false);
   };
 
   // Fonction pour que l'IA joue son coup
-  const makeAIMove = useCallback((player: "X" | "O" = "O") => {
+  const makeAIMove = useCallback(() => {
+    if (isXNext || winner) return; // Ne pas jouer si ce n'est pas le tour de l'IA ou si le jeu est terminé
+
     let bestScore = -Infinity;
     let move = -1;
 
     for (let i = 0; i < squares.length; i++) {
       if (squares[i] === null) {
         const newSquares = squares.slice();
-        newSquares[i] = player;
-        const score = minimax(newSquares, 0, player !== "O", -Infinity, Infinity);
+        newSquares[i] = aiSymbol;
+        const score = minimax(newSquares, 0, aiSymbol !== "O", -Infinity, Infinity);
         if (score > bestScore) {
           bestScore = score;
           move = i;
@@ -55,19 +66,18 @@ const Board: React.FC = () => {
 
     if (move !== -1) {
       const newSquares = squares.slice();
-      newSquares[move] = player;
+      newSquares[move] = aiSymbol;
       setSquares(newSquares);
-      setIsXNext(player === "O");
+      setIsXNext(true);
     }
-  }, [squares]);
+  }, [squares, aiSymbol, isXNext, winner]);
 
   // Appeler l'IA après que l'utilisateur a fait un choix ou cliqué sur "Rejouer"
   useEffect(() => {
-    if (startingPlayer === "ai" && !winner && squares.every((square) => square === null)) {
-      makeAIMove("X");
-      setIsXNext(false);
+    if (startingPlayer === "ai" && squares.every((square) => square === null)) {
+      makeAIMove();
     }
-  }, [startingPlayer, squares, winner, makeAIMove]);
+  }, [startingPlayer, squares, makeAIMove]);
 
   // Mettre à jour le score et vérifier le tour de l'IA
   useEffect(() => {
@@ -77,9 +87,9 @@ const Board: React.FC = () => {
       setScoreUpdated(true);
 
       // Mettre à jour le score
-      if (currentWinner === "X") {
+      if (currentWinner === playerSymbol) {
         setPlayerScore((prev) => prev + 1);
-      } else if (currentWinner === "O") {
+      } else if (currentWinner === aiSymbol) {
         setAiScore((prev) => prev + 1);
       } else if (currentWinner === "Draw") {
         setDrawScore((prev) => prev + 1);
@@ -88,15 +98,15 @@ const Board: React.FC = () => {
     }
 
     // Si c'est le tour de l'IA
-    if (!isXNext && !winner && startingPlayer !== null) {
-      makeAIMove(isXNext ? "X" : "O");
+    if (!isXNext && !winner) {
+      makeAIMove();
     }
-  }, [squares, isXNext, winner, startingPlayer, makeAIMove, scoreUpdated]);
+  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated]);
 
   // Réinitialiser le jeu correctement
   const resetGame = () => {
     setSquares(Array(9).fill(null));
-    setIsXNext(true);
+    setIsXNext(startingPlayer === "player");
     setWinner(null);
     setScoreUpdated(false);
   };
@@ -133,7 +143,7 @@ const Board: React.FC = () => {
               ? winner === "Draw"
                 ? "Match nul !"
                 : `Gagnant : ${winner}`
-              : `Prochain coup : ${isXNext ? "X" : "O"}`}
+              : `Prochain coup : ${isXNext ? playerSymbol : aiSymbol}`}
           </h1>
           <div className="grid grid-cols-3 gap-4">
             {squares.map((value, index) => (
