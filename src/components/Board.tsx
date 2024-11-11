@@ -2,7 +2,7 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
-import Stats from "@/components/Stats"
+import Stats from "@/components/Stats";
 import ScoreBoard from "@/components/ScoreBoard";
 import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
@@ -49,21 +49,16 @@ const Board: React.FC = () => {
     newSquares[index] = isXNext ? playerSymbol : aiSymbol;
     setSquares(newSquares);
 
-    if (mode === "solo") {
-      setIsXNext(false);
-    } else {
-      setIsXNext(!isXNext);
-    }
+    setIsXNext(mode !== "solo" ? !isXNext : false);
   };
 
   // Fonction pour que l'IA joue son coup
   const makeAIMove = useCallback(() => {
     if (mode !== "solo" || isXNext || winner) return;
 
-    // Ouverture spécifique pour "O" si "X" joue le centre
-    if (squares[4] === playerSymbol && squares.every((square) => square === null || square === playerSymbol)) {
+    if (squares[4] === playerSymbol && squares.every((sq) => sq === null || sq === playerSymbol)) {
       const cornerMoves = [0, 2, 6, 8];
-      const move = cornerMoves.find((index) => squares[index] === null);
+      const move = cornerMoves.find((i) => squares[i] === null);
       if (move !== undefined) {
         const newSquares = squares.slice();
         newSquares[move] = aiSymbol;
@@ -111,8 +106,10 @@ const Board: React.FC = () => {
       } else {
         alert("Partie sauvegardée avec succès !");
       }
-    } catch (error) {
-      console.error("Erreur réseau :", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau :", error.message);
+      }
       alert("Une erreur réseau est survenue lors de la sauvegarde.");
     }
   };
@@ -125,7 +122,14 @@ const Board: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
 
-        setSquares(data.squares);
+        // Vérifier si `squares` est une chaîne de caractères et le parser si nécessaire
+        const loadedSquares = typeof data.squares === "string" ? JSON.parse(data.squares) : data.squares;
+
+        if (!Array.isArray(loadedSquares)) {
+          throw new Error("Données corrompues : `squares` n'est pas un tableau.");
+        }
+
+        setSquares(loadedSquares);
         setIsXNext(data.isXNext);
         setPlayerScore(data.playerScore);
         setAiScore(data.aiScore);
@@ -139,8 +143,10 @@ const Board: React.FC = () => {
         console.error("Erreur lors du chargement :", errorData.message);
         alert("Aucune partie sauvegardée trouvée.");
       }
-    } catch (error) {
-      console.error("Erreur réseau lors du chargement :", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors du chargement :", error.message);
+      }
       alert("Une erreur réseau est survenue.");
     }
   };
@@ -160,7 +166,7 @@ const Board: React.FC = () => {
   }, [winner, aiSymbol, playerSymbol]);
 
   useEffect(() => {
-    if (mode === "solo" && startingPlayer === "ai" && squares.every((square) => square === null)) {
+    if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null)) {
       makeAIMove();
     }
   }, [mode, startingPlayer, squares, makeAIMove]);
