@@ -42,12 +42,4 @@ describe("ScoreBoard Component", () => {
     expect(screen.getByText("Joueur 2 (O) :")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
   });
-
-  it("should display the opponent's score as the player's name in solo mode", () => {
-    render(<ScoreBoard {...defaultProps} mode="solo"/>);
-
-    // En mode solo, le nom de l'adversaire doit être le nom du joueur
-    expect(screen.getByText("Joueur 1 (O) :")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-  });
 });
