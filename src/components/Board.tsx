@@ -262,10 +262,10 @@ const Board: React.FC = () => {
   }, [aiSymbol, playerSymbol]);
 
   useEffect(() => {
-    if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null)) {
+    if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null) && !winner) {
       makeAIMove();
     }
-  }, [mode, startingPlayer, squares, makeAIMove]);
+  }, [mode, startingPlayer, squares, makeAIMove, winner]);
 
   useEffect(() => {
     if (mode === "solo") {
