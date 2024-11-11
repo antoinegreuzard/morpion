@@ -7,9 +7,12 @@ interface ScoreBoardProps {
   playerScore: number;
   aiScore: number;
   drawScore: number;
+  playerName: string;
+  opponentName: string;
+  mode: "solo" | "multiplayer";
 }
 
-const ScoreBoard: React.FC<ScoreBoardProps> = ({playerScore, aiScore, drawScore}) => {
+const ScoreBoard: React.FC<ScoreBoardProps> = ({playerScore, aiScore, drawScore, playerName, opponentName, mode}) => {
   return (
     <div className="p-6 rounded-lg shadow-lg bg-white ">
       <h3 className="text-2xl font-bold text-center text-[var(--color-player)] mb-4">Score</h3>
@@ -17,7 +20,7 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({playerScore, aiScore, drawScore}
       <div className="flex flex-col items-center gap-4">
         <div className="flex items-center gap-2">
           <FaUser className="text-[var(--color-player)] text-3xl"/>
-          <p className="text-xl font-semibold">Joueur (X) :</p>
+          <p className="text-xl font-semibold">{mode === "multiplayer" ? `${playerName} (X)` : "Joueur (X)"} :</p>
           <span className="text-3xl font-bold">{playerScore}</span>
         </div>
 
@@ -29,7 +32,7 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({playerScore, aiScore, drawScore}
 
         <div className="flex items-center gap-2">
           <FaRobot className="text-[var(--color-ai)] text-3xl"/>
-          <p className="text-xl font-semibold">IA (O) :</p>
+          <p className="text-xl font-semibold">{mode === "multiplayer" ? `${opponentName} (O)` : "IA (O)"} :</p>
           <span className="text-3xl font-bold">{aiScore}</span>
         </div>
       </div>

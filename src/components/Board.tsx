@@ -372,7 +372,14 @@ const Board: React.FC = () => {
         <div className="flex flex-col items-center gap-6">
           <GameControls saveGame={saveGame} loadGame={loadGame}/>
           <div className="flex flex-wrap justify-center gap-8">
-            <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+            <ScoreBoard
+              playerScore={playerScore}
+              aiScore={aiScore}
+              drawScore={drawScore}
+              playerName={playerName}
+              opponentName={opponentName}
+              mode={mode || "solo"}
+            />
             <Leaderboard
               leaderboard={leaderboard}
               isLoading={isLeaderboardLoading}
