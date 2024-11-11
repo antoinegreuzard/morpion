@@ -39,32 +39,6 @@ const Leaderboard: React.FC = () => {
     }
   };
 
-  // Réinitialiser le leaderboard
-  const resetLeaderboard = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/leaderboard", {method: "DELETE"});
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la réinitialisation du classement.");
-      }
-
-      await fetchLeaderboard();
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Erreur réseau :", error.message);
-        setError("Impossible de réinitialiser le classement. Veuillez réessayer plus tard.");
-      } else {
-        console.error("Erreur inconnue :", error);
-        setError("Une erreur inconnue est survenue.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchLeaderboard();
   }, []);
@@ -90,14 +64,6 @@ const Leaderboard: React.FC = () => {
           )}
         </ul>
       )}
-
-      <button
-        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 mt-4"
-        onClick={resetLeaderboard}
-        disabled={isLoading}
-      >
-        Réinitialiser le Classement
-      </button>
     </div>
   );
 };

@@ -129,11 +129,14 @@ const Board: React.FC = () => {
           throw new Error("Données corrompues : `squares` n'est pas un tableau.");
         }
 
+        console.log(data)
+
         setSquares(loadedSquares);
-        setIsXNext(data.isXNext);
-        setPlayerScore(data.playerScore);
-        setAiScore(data.aiScore);
-        setDrawScore(data.drawScore);
+
+        setIsXNext(data.isxnext);
+        setPlayerScore(Number(data.playerscore) || 0);
+        setAiScore(Number(data.aiscore) || 0);
+        setDrawScore(Number(data.drawscore) || 0);
 
         // Rétablir le mode et le joueur qui commence à partir des données sauvegardées
         setMode(data.mode ?? "solo");
