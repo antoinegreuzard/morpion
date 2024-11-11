@@ -1,55 +1,61 @@
 import {NextRequest, NextResponse} from "next/server";
+import {query} from "@/utils/db";
 
-// Classement stocké en mémoire (réinitialisé à chaque redémarrage du serveur)
-let leaderboard: { player: string; score: number }[] = [];
-
-/**
- * Handler pour la méthode GET : récupérer le classement complet ou le score d'un joueur spécifique.
- */
+// Obtenir le classement
 export async function GET(req: NextRequest) {
-  const {searchParams} = new URL(req.url);
-  const player = searchParams.get("player");
+  try {
+    const {searchParams} = new URL(req.url);
+    const player = searchParams.get("player");
 
-  if (player) {
-    const playerData = leaderboard.find((entry) => entry.player === player);
-    if (playerData) {
-      return NextResponse.json(playerData);
+    if (player) {
+      const result = await query(`SELECT *
+                                  FROM leaderboard
+                                  WHERE player = $1`, [player]);
+      return result.rows.length > 0
+        ? NextResponse.json(result.rows[0])
+        : NextResponse.json({message: "Joueur non trouvé."}, {status: 404});
     }
-    return NextResponse.json({message: "Joueur non trouvé."}, {status: 404});
-  }
 
-  // Retourner le classement complet trié par score décroissant
-  return NextResponse.json(leaderboard.sort((a, b) => b.score - a.score));
+    const result = await query(`SELECT *
+                                FROM leaderboard
+                                ORDER BY score DESC`);
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error("Erreur lors de la récupération du classement :", error);
+    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+  }
 }
 
-/**
- * Handler pour la méthode POST : ajouter ou mettre à jour le score d'un joueur.
- */
+// Ajouter ou mettre à jour le score d'un joueur
 export async function POST(req: NextRequest) {
-  const {player, score} = await req.json();
+  try {
+    const {player, score} = await req.json();
 
-  // Validation des données
-  if (typeof player !== "string" || typeof score !== "number") {
-    return NextResponse.json({message: "Données invalides."}, {status: 400});
+    const text = `
+      INSERT INTO leaderboard (player, score)
+      VALUES ($1, $2) ON CONFLICT (player) DO
+      UPDATE
+        SET score = GREATEST(leaderboard.score, $2)
+        RETURNING *;
+    `;
+    const values = [player, score];
+    const result = await query(text, values);
+
+    return NextResponse.json({message: "Score mis à jour !", player: result.rows[0]});
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour du score :", error);
+    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
   }
-
-  // Vérifier si le joueur existe déjà
-  const existingPlayer = leaderboard.find((entry) => entry.player === player);
-  if (existingPlayer) {
-    // Mettre à jour le score si le joueur existe
-    existingPlayer.score = Math.max(existingPlayer.score, score);
-    return NextResponse.json({message: "Score mis à jour !"});
-  }
-
-  // Ajouter un nouveau joueur
-  leaderboard.push({player, score});
-  return NextResponse.json({message: "Score ajouté !"}, {status: 201});
 }
 
-/**
- * Handler pour la méthode DELETE : réinitialiser le classement.
- */
+// Réinitialiser le classement
 export async function DELETE() {
-  leaderboard = [];
-  return NextResponse.json({message: "Classement réinitialisé."});
+  try {
+    await query(`DELETE
+                 FROM leaderboard`);
+    return NextResponse.json({message: "Classement réinitialisé."});
+  } catch (error) {
+    console.error("Erreur lors de la réinitialisation du classement :", error);
+    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+  }
 }

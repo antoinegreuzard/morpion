@@ -2,7 +2,7 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
-import Stats from "@/components/Stats"
+import Stats from "@/components/Stats";
 import ScoreBoard from "@/components/ScoreBoard";
 import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
@@ -49,21 +49,16 @@ const Board: React.FC = () => {
     newSquares[index] = isXNext ? playerSymbol : aiSymbol;
     setSquares(newSquares);
 
-    if (mode === "solo") {
-      setIsXNext(false);
-    } else {
-      setIsXNext(!isXNext);
-    }
+    setIsXNext(mode !== "solo" ? !isXNext : false);
   };
 
   // Fonction pour que l'IA joue son coup
   const makeAIMove = useCallback(() => {
     if (mode !== "solo" || isXNext || winner) return;
 
-    // Ouverture spécifique pour "O" si "X" joue le centre
-    if (squares[4] === playerSymbol && squares.every((square) => square === null || square === playerSymbol)) {
+    if (squares[4] === playerSymbol && squares.every((sq) => sq === null || sq === playerSymbol)) {
       const cornerMoves = [0, 2, 6, 8];
-      const move = cornerMoves.find((index) => squares[index] === null);
+      const move = cornerMoves.find((i) => squares[i] === null);
       if (move !== undefined) {
         const newSquares = squares.slice();
         newSquares[move] = aiSymbol;
@@ -97,6 +92,35 @@ const Board: React.FC = () => {
     }
   }, [squares, aiSymbol, playerSymbol, isXNext, winner, mode]);
 
+  // Mettre à jour le leaderboard
+  const updateLeaderboard = useCallback(async (currentWinner: string) => {
+    const player = currentWinner === aiSymbol ? "AI" : "Player";
+    const score = 1;
+
+    try {
+      const response = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({player, score}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Erreur lors de la mise à jour du leaderboard :", errorData.message);
+        alert("Impossible de mettre à jour le leaderboard.");
+      } else {
+        console.log(`Le leaderboard a été mis à jour pour ${player}`);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors de la mise à jour du leaderboard :", error.message);
+      } else {
+        console.error("Erreur inconnue lors de la mise à jour du leaderboard :", error);
+      }
+      alert("Une erreur réseau est survenue lors de la mise à jour du leaderboard.");
+    }
+  }, [aiSymbol]);
+
   // Sauvegarder la partie
   const saveGame = async () => {
     try {
@@ -111,8 +135,10 @@ const Board: React.FC = () => {
       } else {
         alert("Partie sauvegardée avec succès !");
       }
-    } catch (error) {
-      console.error("Erreur réseau :", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau :", error.message);
+      }
       alert("Une erreur réseau est survenue lors de la sauvegarde.");
     }
   };
@@ -125,11 +151,19 @@ const Board: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
 
-        setSquares(data.squares);
-        setIsXNext(data.isXNext);
-        setPlayerScore(data.playerScore);
-        setAiScore(data.aiScore);
-        setDrawScore(data.drawScore);
+        // Vérifier si `squares` est une chaîne de caractères et le parser si nécessaire
+        const loadedSquares = typeof data.squares === "string" ? JSON.parse(data.squares) : data.squares;
+
+        if (!Array.isArray(loadedSquares)) {
+          throw new Error("Données corrompues : `squares` n'est pas un tableau.");
+        }
+
+        setSquares(loadedSquares);
+
+        setIsXNext(data.isxnext);
+        setPlayerScore(Number(data.playerscore) || 0);
+        setAiScore(Number(data.aiscore) || 0);
+        setDrawScore(Number(data.drawscore) || 0);
 
         // Rétablir le mode et le joueur qui commence à partir des données sauvegardées
         setMode(data.mode ?? "solo");
@@ -139,28 +173,46 @@ const Board: React.FC = () => {
         console.error("Erreur lors du chargement :", errorData.message);
         alert("Aucune partie sauvegardée trouvée.");
       }
-    } catch (error) {
-      console.error("Erreur réseau lors du chargement :", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors du chargement :", error.message);
+      }
       alert("Une erreur réseau est survenue.");
     }
   };
 
-  // Mettre à jour les statistiques
-  const updateStats = useCallback(async () => {
+  // Mettre à jour les statistiques avec gestion des erreurs
+  const updateStats = useCallback(async (currentWinner: string) => {
     const body = {
-      aiWins: winner === aiSymbol ? 1 : 0,
-      playerWins: winner === playerSymbol ? 1 : 0,
-      draws: winner === "Draw" ? 1 : 0,
+      aiWins: currentWinner === aiSymbol ? 1 : 0,
+      playerWins: currentWinner === playerSymbol ? 1 : 0,
+      draws: currentWinner === "Draw" ? 1 : 0,
     };
-    await fetch("/api/stats", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(body),
-    });
-  }, [winner, aiSymbol, playerSymbol]);
+
+    try {
+      const response = await fetch("/api/stats", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Erreur lors de la mise à jour des statistiques :", errorData.message);
+        alert("Impossible de mettre à jour les statistiques.");
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors de la mise à jour des statistiques :", error.message);
+      } else {
+        console.error("Erreur inconnue lors de la mise à jour des statistiques :", error);
+      }
+      alert("Une erreur réseau est survenue lors de la mise à jour des statistiques.");
+    }
+  }, [aiSymbol, playerSymbol]);
 
   useEffect(() => {
-    if (mode === "solo" && startingPlayer === "ai" && squares.every((square) => square === null)) {
+    if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null)) {
       makeAIMove();
     }
   }, [mode, startingPlayer, squares, makeAIMove]);
@@ -181,9 +233,10 @@ const Board: React.FC = () => {
 
       setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
 
-      // Mettre à jour les statistiques seulement après avoir défini le gagnant
+      // Utiliser `currentWinner` au lieu de `winner`
       (async () => {
-        await updateStats();
+        await updateStats(currentWinner);
+        await updateLeaderboard(currentWinner);
       })();
     }
 

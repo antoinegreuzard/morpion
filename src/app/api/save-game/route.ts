@@ -1,18 +1,18 @@
 import {NextRequest, NextResponse} from "next/server";
-import {setSavedGame} from "@/app/api/gameStore";
+import {query} from "@/utils/db";
 
 export async function POST(req: NextRequest) {
   try {
     const {squares, isXNext, playerScore, aiScore, drawScore} = await req.json();
 
-    // Vérifier si les données sont valides
-    if (!Array.isArray(squares) || typeof isXNext !== "boolean") {
-      return NextResponse.json({message: "Données invalides."}, {status: 400});
-    }
+    const text = `
+      INSERT INTO games (squares, isxnext, playerscore, aiscore, drawscore)
+      VALUES ($1, $2, $3, $4, $5) RETURNING id
+    `;
+    const values = [JSON.stringify(squares), isXNext, playerScore, aiScore, drawScore];
+    const result = await query(text, values);
 
-    setSavedGame({squares, isXNext, playerScore, aiScore, drawScore});
-
-    return NextResponse.json({message: "Partie sauvegardée !"});
+    return NextResponse.json({message: "Partie sauvegardée !", gameId: result.rows[0].id});
   } catch (error) {
     console.error("Erreur lors de la sauvegarde :", error);
     return NextResponse.json({message: "Erreur serveur."}, {status: 500});
