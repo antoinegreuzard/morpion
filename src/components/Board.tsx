@@ -142,7 +142,8 @@ const Board: React.FC = () => {
 
   // Mettre à jour le leaderboard
   const updateLeaderboard = useCallback(async (currentWinner: string) => {
-    const player = currentWinner === aiSymbol ? opponentName : playerName;
+    // Utilisez "IA" comme nom si le mode est solo et l'IA gagne
+    const player = currentWinner === aiSymbol && mode === "solo" ? "IA" : playerName;
     const score = 1;
 
     try {
@@ -161,7 +162,7 @@ const Board: React.FC = () => {
         alert(error.message);
       }
     }
-  }, [aiSymbol, opponentName, playerName]);
+  }, [aiSymbol, mode, playerName]);
 
   // Sauvegarder la partie
   const saveGame = async () => {
@@ -254,11 +255,11 @@ const Board: React.FC = () => {
 
   useEffect(() => {
     if (mode === "solo") {
-      setOpponentName("IA");
+      setOpponentName(playerName);
     } else if (mode === "multiplayer") {
       setOpponentName("Joueur 2");
     }
-  }, [mode]);
+  }, [mode, playerName]);
 
   useEffect(() => {
     const currentWinner = checkWinner(squares);

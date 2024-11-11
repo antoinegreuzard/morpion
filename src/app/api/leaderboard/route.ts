@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Ajouter ou mettre à jour le score d'un joueur
+// Ajouter ou mettre à jour le score d'un joueur (en cumulant le score)
 export async function POST(req: NextRequest) {
   try {
     const {player, score} = await req.json();
@@ -33,16 +33,17 @@ export async function POST(req: NextRequest) {
     const text = `
       INSERT INTO leaderboard (player, score)
       VALUES ($1, $2) ON CONFLICT (player) DO
-      UPDATE
-        SET score = GREATEST(leaderboard.score, $2)
+      UPDATE SET score = leaderboard.score + $2
         RETURNING *;
     `;
     const values = [player, score];
     const result = await query(text, values);
 
     return NextResponse.json({message: "Score mis à jour !", player: result.rows[0]});
-  } catch (error) {
-    return NextResponse.json({message: error}, {status: 500});
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return NextResponse.json({message: error.message}, {status: 500});
+    }
   }
 }
 

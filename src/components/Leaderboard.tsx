@@ -22,12 +22,14 @@ const Leaderboard: React.FC<LeaderboardProps> = ({leaderboard, isLoading, error}
 
       {!isLoading && !error && (
         <ul>
-          {leaderboard.length > 0 ? (
-            leaderboard.map((entry, index) => (
-              <li key={index} className="mb-2 text-lg">
-                {entry.player}: <span className="font-bold">{entry.score}</span>
-              </li>
-            ))
+          {leaderboard.filter(entry => entry.player !== "IA" && entry.player !== "AI").length > 0 ? (
+            leaderboard
+              .filter(entry => entry.player !== "IA" && entry.player !== "AI")
+              .map((entry, index) => (
+                <li key={index} className="mb-2 text-lg">
+                  {entry.player}: <span className="font-bold">{entry.score}</span>
+                </li>
+              ))
           ) : (
             <p className="text-lg">Aucun joueur trouvé.</p>
           )}
