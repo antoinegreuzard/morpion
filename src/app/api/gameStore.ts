@@ -1,4 +1,3 @@
-// gameStore.ts
 export let savedGame: {
   squares: ("X" | "O" | null)[];
   isXNext: boolean;

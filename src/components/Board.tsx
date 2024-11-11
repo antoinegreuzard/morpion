@@ -2,9 +2,12 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
+import Stats from "@/components/Stats"
 import ScoreBoard from "@/components/ScoreBoard";
 import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
+import Leaderboard from "@/components/Leaderboard";
+import GameControls from "@/components/GameControls";
 
 const Board: React.FC = () => {
   const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
@@ -55,7 +58,7 @@ const Board: React.FC = () => {
 
   // Fonction pour que l'IA joue son coup
   const makeAIMove = useCallback(() => {
-    if (isXNext || winner || mode !== "solo") return;
+    if (mode !== "solo" || isXNext || winner) return;
 
     // Ouverture spécifique pour "O" si "X" joue le centre
     if (squares[4] === playerSymbol && squares.every((square) => square === null || square === playerSymbol)) {
@@ -113,13 +116,15 @@ const Board: React.FC = () => {
       setPlayerScore(data.playerScore);
       setAiScore(data.aiScore);
       setDrawScore(data.drawScore);
-      setMode("solo"); // Par défaut, on charge en mode solo
-      setStartingPlayer("player"); // Par défaut, on laisse le joueur commencer
+
+      // Rétablir le mode et le joueur qui commence à partir des données sauvegardées
+      setMode(data.mode ?? "solo");
+      setStartingPlayer(data.startingPlayer ?? "player");
     }
   };
 
   // Mettre à jour les statistiques
-  const updateStats = async () => {
+  const updateStats = useCallback(async () => {
     const body = {
       aiWins: winner === aiSymbol ? 1 : 0,
       playerWins: winner === playerSymbol ? 1 : 0,
@@ -130,7 +135,7 @@ const Board: React.FC = () => {
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(body),
     });
-  };
+  }, [winner, aiSymbol, playerSymbol]);
 
   useEffect(() => {
     if (mode === "solo" && startingPlayer === "ai" && squares.every((square) => square === null)) {
@@ -138,7 +143,6 @@ const Board: React.FC = () => {
     }
   }, [mode, startingPlayer, squares, makeAIMove]);
 
-  // Mettre à jour le score et vérifier le tour de l'IA
   useEffect(() => {
     const currentWinner = checkWinner(squares);
     if (currentWinner && !scoreUpdated) {
@@ -153,14 +157,18 @@ const Board: React.FC = () => {
         setDrawScore((prev) => prev + 1);
       }
 
-      updateStats();
       setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
+
+      // Mettre à jour les statistiques seulement après avoir défini le gagnant
+      (async () => {
+        await updateStats();
+      })();
     }
 
     if (mode === "solo" && !isXNext && !winner) {
       makeAIMove();
     }
-  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode]);
+  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats]);
 
   // Réinitialiser le jeu
   const resetGame = () => {
@@ -169,60 +177,39 @@ const Board: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Choix du mode de jeu */}
       {!mode && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-4">Choisissez le mode de jeu :</h2>
           <div className="flex justify-center">
-            <button
-              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              onClick={() => setMode("solo")}
-            >
+            <button className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg" onClick={() => setMode("solo")}>
               Solo (IA)
             </button>
-            <button
-              className="px-4 py-2 m-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-              onClick={() => setMode("multiplayer")}
-            >
+            <button className="px-4 py-2 m-2 bg-green-500 text-white rounded-lg" onClick={() => setMode("multiplayer")}>
               Multijoueur
             </button>
           </div>
         </div>
       )}
 
-      {/* Choix du joueur qui commence */}
       {mode && !startingPlayer && (
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-center mb-4">Qui commence ?</h2>
-          <div className="flex justify-center">
-            <button
-              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-              onClick={() => initializeGame("player")}
-            >
-              Joueur commence (X)
+          <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
+          <button className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg" onClick={() => initializeGame("player")}>
+            Joueur commence (X)
+          </button>
+          {mode === "solo" && (
+            <button className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg" onClick={() => initializeGame("ai")}>
+              IA commence (X)
             </button>
-            {mode === "solo" && (
-              <button
-                className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                onClick={() => initializeGame("ai")}
-              >
-                IA commence (X)
-              </button>
-            )}
-          </div>
+          )}
         </div>
       )}
 
-      <div className="mb-6">
-        <button onClick={saveGame} className="px-4 py-2 bg-blue-500 text-white rounded-lg">
-          Sauvegarder la Partie
-        </button>
-        <button onClick={loadGame} className="px-4 py-2 ml-4 bg-green-500 text-white rounded-lg">
-          Charger la Partie
-        </button>
-      </div>
-
+      {startingPlayer && <GameControls saveGame={saveGame} loadGame={loadGame}/>}
       <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+      <Leaderboard/>
+      <Stats/>
+
       {startingPlayer && (
         <div>
           <h1 className={`text-3xl font-bold mb-6 ${winner ? "animate-bounce text-green-500" : ""}`}>

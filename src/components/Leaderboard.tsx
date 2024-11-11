@@ -20,7 +20,7 @@ const Leaderboard: React.FC = () => {
   // Réinitialiser le leaderboard
   const resetLeaderboard = async () => {
     await fetch("/api/leaderboard", {method: "DELETE"});
-    fetchLeaderboard();
+    await fetchLeaderboard();
   };
 
   useEffect(() => {

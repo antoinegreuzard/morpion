@@ -21,7 +21,7 @@ const Stats: React.FC = () => {
   // Réinitialiser les statistiques
   const resetStats = async () => {
     await fetch("/api/stats", {method: "DELETE"});
-    fetchStats();
+    await fetchStats();
   };
 
   useEffect(() => {
