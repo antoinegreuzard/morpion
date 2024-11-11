@@ -2,11 +2,11 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
-import Stats from "@/components/Stats";
+import Stats, {StatsData} from "@/components/Stats";
 import ScoreBoard from "@/components/ScoreBoard";
 import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
-import Leaderboard from "@/components/Leaderboard";
+import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
 
 const Board: React.FC = () => {
@@ -24,6 +24,12 @@ const Board: React.FC = () => {
   const [scoreUpdated, setScoreUpdated] = useState(false);
   const [playerName, setPlayerName] = useState<string>("Joueur 1");
   const [opponentName, setOpponentName] = useState<string>(mode === "solo" ? "IA" : "Joueur 2");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [stats, setStats] = useState<StatsData>({aiwins: 0, playerwins: 0, draws: 0});
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -42,7 +48,47 @@ const Board: React.FC = () => {
       setPlayerSymbol("O");
       setAiSymbol("X");
     }
+
+    // Mettre à jour le leaderboard et les statistiques
+    fetchLeaderboard();
+    fetchStats();
   };
+
+  const fetchLeaderboard = useCallback(async () => {
+    setIsLeaderboardLoading(true);
+    setLeaderboardError(null);
+
+    try {
+      const response = await fetch("/api/leaderboard");
+      if (!response.ok) throw new Error("Erreur lors de la récupération du classement.");
+      const data = await response.json();
+      setLeaderboard(data);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setLeaderboardError(error.message);
+      }
+    } finally {
+      setIsLeaderboardLoading(false);
+    }
+  }, []);
+
+  const fetchStats = useCallback(async () => {
+    setIsStatsLoading(true);
+    setStatsError(null);
+
+    try {
+      const response = await fetch("/api/stats");
+      if (!response.ok) throw new Error("Erreur lors de la récupération des statistiques.");
+      const data = await response.json();
+      setStats(data);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setStatsError(error.message);
+      }
+    } finally {
+      setIsStatsLoading(false);
+    }
+  }, []);
 
   const handleClick = (index: number) => {
     if (squares[index] || winner || startingPlayer === null) return;
@@ -108,20 +154,14 @@ const Board: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Erreur lors de la mise à jour du leaderboard :", errorData.message);
-        alert("Impossible de mettre à jour le leaderboard.");
-      } else {
-        console.log(`Le leaderboard a été mis à jour pour ${player}`);
+        alert(errorData.message);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Erreur réseau lors de la mise à jour du leaderboard :", error.message);
-      } else {
-        console.error("Erreur inconnue lors de la mise à jour du leaderboard :", error);
+        alert(error.message);
       }
-      alert("Une erreur réseau est survenue lors de la mise à jour du leaderboard.");
     }
-  }, [aiSymbol]);
+  }, [aiSymbol, opponentName, playerName]);
 
   // Sauvegarder la partie
   const saveGame = async () => {
@@ -139,9 +179,8 @@ const Board: React.FC = () => {
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Erreur réseau :", error.message);
+        alert(error.message);
       }
-      alert("Une erreur réseau est survenue lors de la sauvegarde.");
     }
   };
 
@@ -172,14 +211,12 @@ const Board: React.FC = () => {
         setStartingPlayer(data.startingPlayer ?? "player");
       } else {
         const errorData = await response.json();
-        console.error("Erreur lors du chargement :", errorData.message);
-        alert("Aucune partie sauvegardée trouvée.");
+        alert(errorData.message);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Erreur réseau lors du chargement :", error.message);
+        alert(error.message);
       }
-      alert("Une erreur réseau est survenue.");
     }
   };
 
@@ -200,16 +237,12 @@ const Board: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Erreur lors de la mise à jour des statistiques :", errorData.message);
-        alert("Impossible de mettre à jour les statistiques.");
+        alert(errorData.message);
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("Erreur réseau lors de la mise à jour des statistiques :", error.message);
-      } else {
-        console.error("Erreur inconnue lors de la mise à jour des statistiques :", error);
+        alert(error.message);
       }
-      alert("Une erreur réseau est survenue lors de la mise à jour des statistiques.");
     }
   }, [aiSymbol, playerSymbol]);
 
@@ -253,7 +286,12 @@ const Board: React.FC = () => {
     if (mode === "solo" && !isXNext && !winner) {
       makeAIMove();
     }
-  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats]);
+  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+    fetchStats();
+  }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
   // Réinitialiser le jeu
   const resetGame = () => {
@@ -335,8 +373,16 @@ const Board: React.FC = () => {
           <GameControls saveGame={saveGame} loadGame={loadGame}/>
           <div className="flex flex-wrap justify-center gap-8">
             <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
-            <Leaderboard/>
-            <Stats/>
+            <Leaderboard
+              leaderboard={leaderboard}
+              isLoading={isLeaderboardLoading}
+              error={leaderboardError}
+            />
+            <Stats
+              stats={stats}
+              isLoading={isStatsLoading}
+              error={statsError}
+            />
           </div>
         </div>
       )}
