@@ -176,43 +176,71 @@ const Board: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-8">
+      {/* Sélection du mode de jeu */}
       {!mode && (
-        <div className="mb-6">
+        <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Choisissez le mode de jeu :</h2>
-          <div className="flex justify-center">
-            <button className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg" onClick={() => setMode("solo")}>
+          <div className="flex gap-4">
+            <button
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg"
+              onClick={() => setMode("solo")}
+            >
               Solo (IA)
             </button>
-            <button className="px-4 py-2 m-2 bg-green-500 text-white rounded-lg" onClick={() => setMode("multiplayer")}>
+            <button
+              className="px-6 py-3 bg-green-500 text-white rounded-lg"
+              onClick={() => setMode("multiplayer")}
+            >
               Multijoueur
             </button>
           </div>
         </div>
       )}
 
+      {/* Sélection du joueur qui commence */}
       {mode && !startingPlayer && (
-        <div className="mb-6">
+        <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
-          <button className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg" onClick={() => initializeGame("player")}>
-            Joueur commence (X)
-          </button>
-          {mode === "solo" && (
-            <button className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg" onClick={() => initializeGame("ai")}>
-              IA commence (X)
+          <div className="flex gap-4">
+            <button
+              className="px-6 py-3 bg-blue-500 text-white rounded-lg"
+              onClick={() => initializeGame("player")}
+            >
+              Joueur commence (X)
             </button>
-          )}
+            {mode === "solo" && (
+              <button
+                className="px-6 py-3 bg-red-500 text-white rounded-lg"
+                onClick={() => initializeGame("ai")}
+              >
+                IA commence (X)
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      {startingPlayer && <GameControls saveGame={saveGame} loadGame={loadGame}/>}
-      <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
-      <Leaderboard/>
-      <Stats/>
-
+      {/* Contrôles et tableau de bord */}
       {startingPlayer && (
-        <div>
-          <h1 className={`text-3xl font-bold mb-6 ${winner ? "animate-bounce text-green-500" : ""}`}>
+        <div className="flex flex-col items-center gap-6">
+          <GameControls saveGame={saveGame} loadGame={loadGame}/>
+          <div className="flex flex-wrap justify-center gap-8">
+            <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+            <Leaderboard/>
+            <Stats/>
+          </div>
+        </div>
+      )}
+
+      {/* Plateau de jeu */}
+      {startingPlayer && (
+        <div className="flex flex-col items-center gap-4">
+          <h1
+            className={`text-3xl font-bold mb-4 ${
+              winner ? "animate-bounce text-green-500" : ""
+            }`}
+          >
             {winner ? `Gagnant : ${winner}` : `Prochain coup : ${isXNext ? playerSymbol : aiSymbol}`}
           </h1>
           <div className="grid grid-cols-3 gap-4">
@@ -222,8 +250,13 @@ const Board: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Bouton Rejouer */}
       {winner && (
-        <button onClick={resetGame} className="mt-6 px-6 py-3 bg-gray-700 text-white rounded-lg">
+        <button
+          onClick={resetGame}
+          className="mt-6 px-6 py-3 bg-gray-700 text-white rounded-lg"
+        >
           Rejouer
         </button>
       )}
