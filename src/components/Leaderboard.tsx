@@ -9,18 +9,60 @@ interface LeaderboardEntry {
 
 const Leaderboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Charger le leaderboard
   const fetchLeaderboard = async () => {
-    const response = await fetch("/api/leaderboard");
-    const data = await response.json();
-    setLeaderboard(data);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/leaderboard");
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la récupération du classement.");
+      }
+
+      const data = await response.json();
+      setLeaderboard(data);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau :", error.message);
+        setError("Impossible de récupérer le classement. Veuillez réessayer plus tard.");
+      } else {
+        console.error("Erreur inconnue :", error);
+        setError("Une erreur inconnue est survenue.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Réinitialiser le leaderboard
   const resetLeaderboard = async () => {
-    await fetch("/api/leaderboard", {method: "DELETE"});
-    await fetchLeaderboard();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/leaderboard", {method: "DELETE"});
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la réinitialisation du classement.");
+      }
+
+      await fetchLeaderboard();
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau :", error.message);
+        setError("Impossible de réinitialiser le classement. Veuillez réessayer plus tard.");
+      } else {
+        console.error("Erreur inconnue :", error);
+        setError("Une erreur inconnue est survenue.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -30,16 +72,29 @@ const Leaderboard: React.FC = () => {
   return (
     <div className="p-6 rounded-lg shadow-lg bg-white">
       <h2 className="text-2xl font-bold text-[var(--color-player)] mb-4">Classement</h2>
-      <ul>
-        {leaderboard.map((entry, index) => (
-          <li key={index} className="mb-2 text-lg">
-            {entry.player}: <span className="font-bold">{entry.score}</span>
-          </li>
-        ))}
-      </ul>
+
+      {isLoading && <p className="text-lg">Chargement...</p>}
+
+      {error && <p className="text-lg text-red-500">{error}</p>}
+
+      {!isLoading && !error && (
+        <ul>
+          {leaderboard.length > 0 ? (
+            leaderboard.map((entry, index) => (
+              <li key={index} className="mb-2 text-lg">
+                {entry.player}: <span className="font-bold">{entry.score}</span>
+              </li>
+            ))
+          ) : (
+            <p className="text-lg">Aucun joueur trouvé.</p>
+          )}
+        </ul>
+      )}
+
       <button
-        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 mt-4"
         onClick={resetLeaderboard}
+        disabled={isLoading}
       >
         Réinitialiser le Classement
       </button>
