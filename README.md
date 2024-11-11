@@ -9,6 +9,7 @@ pour l'IA. Il propose également un mode **Multijoueur** pour jouer contre un au
 - **TypeScript** pour un typage robuste et sécurisé
 - **Tailwind CSS** pour un style moderne et réactif
 - **Minimax** avec optimisation pour l'algorithme d'IA
+- **Neon** pour la base de données PostgreSQL
 - **pnpm** pour la gestion efficace des paquets
 
 ## 🚀 Fonctionnalités
@@ -21,6 +22,8 @@ pour l'IA. Il propose également un mode **Multijoueur** pour jouer contre un au
 - **Détection automatique du gagnant** : Affichage clair du score et du vainqueur
 - **Interface moderne** : Créée avec Tailwind CSS pour une expérience utilisateur agréable
 - **Sauvegarde et Chargement de Partie** : Fonctionnalités pour sauvegarder et reprendre une partie
+- **Mises à jour des Statistiques et du Classement** : Envoi des données à l'API pour mettre à jour le classement et les
+  statistiques des parties.
 
 ## 📦 Installation
 
@@ -37,7 +40,22 @@ cd tic-tac-toe
 pnpm install
 ```
 
-3. Lancez le serveur de développement :
+3. Configuration de l'environnement :
+
+Créez un fichier `.env.local` à la racine du projet et ajoutez les variables suivantes :
+
+```bash
+# URL de connexion à la base de données (Neon PostgreSQL)
+DATABASE_URL=postgres://user:password@host:port/database
+
+# Environnement (développement en local)
+NODE_ENV=development
+```
+
+> **Note** : Assurez-vous que la variable `DATABASE_URL` pointe vers votre base de données Neon. Vous pouvez récupérer
+> l'URL de connexion dans votre tableau de bord Neon.
+
+4. Lancez le serveur de développement :
 
 ```bash
 pnpm dev
@@ -67,27 +85,62 @@ tic-tac-toe/
 ├── src/
 │   ├── app/
 │   │   ├── api/
+│   │   │   ├── leaderboard/
+│   │   │   │   └── route.ts
+│   │   │   ├── load-game/
+│   │   │   │   └── route.ts
+│   │   │   ├── save-game/
+│   │   │   │   └── route.ts
+│   │   │   └── stats/
+│   │   │       └── route.ts
 │   │   ├── globals.css
 │   │   ├── layout.tsx
 │   │   └── page.tsx
 │   ├── components/
 │   │   ├── Board.tsx
-│   │   ├── Square.tsx
-│   │   ├── ScoreBoard.tsx
 │   │   ├── GameControls.tsx
 │   │   ├── Leaderboard.tsx
+│   │   ├── ScoreBoard.tsx
+│   │   ├── Square.tsx
 │   │   └── Stats.tsx
 │   ├── utils/
 │   │   ├── checkWinner.ts
-│   │   ├── minimax.ts
-│   │   └── gameStore.ts
+│   │   ├── db.ts
+│   │   ├── getCanonicalForm.ts
+│   │   └── minimax.ts
+├── .env.local
 ├── .eslintrc.json
-├── tailwind.config.js
-├── tsconfig.json
-├── next.config.js
+├── .gitignore
+├── jest.config.mjs
+├── jest.setup.js
+├── LICENSE
+├── next.config.ts
 ├── package.json
-└── README.md
+├── pnpm-lock.yaml
+├── postcss.config.mjs
+├── README.md
+├── SECURITY.md
+├── tailwind.config.ts
+└── tsconfig.json
 ```
+
+## 📈 API et Sauvegarde des Données
+
+Le projet inclut des API pour gérer les statistiques et le classement des joueurs :
+
+- **/api/stats** :
+  - `GET` : Récupère les statistiques globales (victoires IA, victoires joueur, matchs nuls).
+  - `POST` : Met à jour les statistiques après chaque partie.
+
+- **/api/leaderboard** :
+  - `GET` : Récupère le classement des joueurs basé sur leurs scores.
+  - `POST` : Met à jour le score d'un joueur.
+
+- **/api/save-game** :
+  - `POST` : Sauvegarde l'état actuel de la partie (plateau, score, joueur actif).
+
+- **/api/load-game** :
+  - `GET` : Charge l'état sauvegardé de la partie.
 
 ## 📝 Licence
 
