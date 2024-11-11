@@ -92,6 +92,35 @@ const Board: React.FC = () => {
     }
   }, [squares, aiSymbol, playerSymbol, isXNext, winner, mode]);
 
+  // Mettre à jour le leaderboard
+  const updateLeaderboard = useCallback(async (currentWinner: string) => {
+    const player = currentWinner === aiSymbol ? "AI" : "Player";
+    const score = 1;
+
+    try {
+      const response = await fetch("/api/leaderboard", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({player, score}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Erreur lors de la mise à jour du leaderboard :", errorData.message);
+        alert("Impossible de mettre à jour le leaderboard.");
+      } else {
+        console.log(`Le leaderboard a été mis à jour pour ${player}`);
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors de la mise à jour du leaderboard :", error.message);
+      } else {
+        console.error("Erreur inconnue lors de la mise à jour du leaderboard :", error);
+      }
+      alert("Une erreur réseau est survenue lors de la mise à jour du leaderboard.");
+    }
+  }, [aiSymbol]);
+
   // Sauvegarder la partie
   const saveGame = async () => {
     try {
@@ -129,8 +158,6 @@ const Board: React.FC = () => {
           throw new Error("Données corrompues : `squares` n'est pas un tableau.");
         }
 
-        console.log(data)
-
         setSquares(loadedSquares);
 
         setIsXNext(data.isxnext);
@@ -154,19 +181,35 @@ const Board: React.FC = () => {
     }
   };
 
-  // Mettre à jour les statistiques
-  const updateStats = useCallback(async () => {
+  // Mettre à jour les statistiques avec gestion des erreurs
+  const updateStats = useCallback(async (currentWinner: string) => {
     const body = {
-      aiWins: winner === aiSymbol ? 1 : 0,
-      playerWins: winner === playerSymbol ? 1 : 0,
-      draws: winner === "Draw" ? 1 : 0,
+      aiWins: currentWinner === aiSymbol ? 1 : 0,
+      playerWins: currentWinner === playerSymbol ? 1 : 0,
+      draws: currentWinner === "Draw" ? 1 : 0,
     };
-    await fetch("/api/stats", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(body),
-    });
-  }, [winner, aiSymbol, playerSymbol]);
+
+    try {
+      const response = await fetch("/api/stats", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Erreur lors de la mise à jour des statistiques :", errorData.message);
+        alert("Impossible de mettre à jour les statistiques.");
+      }
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Erreur réseau lors de la mise à jour des statistiques :", error.message);
+      } else {
+        console.error("Erreur inconnue lors de la mise à jour des statistiques :", error);
+      }
+      alert("Une erreur réseau est survenue lors de la mise à jour des statistiques.");
+    }
+  }, [aiSymbol, playerSymbol]);
 
   useEffect(() => {
     if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null)) {
@@ -190,9 +233,10 @@ const Board: React.FC = () => {
 
       setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
 
-      // Mettre à jour les statistiques seulement après avoir défini le gagnant
+      // Utiliser `currentWinner` au lieu de `winner`
       (async () => {
-        await updateStats();
+        await updateStats(currentWinner);
+        await updateLeaderboard(currentWinner);
       })();
     }
 

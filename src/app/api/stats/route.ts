@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
     const {aiWins, playerWins, draws} = await req.json();
 
     const text = `
-      INSERT INTO stats (aiWins, playerWins, draws)
+      INSERT INTO stats (aiwins, playerwins, draws)
       VALUES ($1, $2, $3) ON CONFLICT (id) DO
       UPDATE
-        SET aiWins = stats.aiWins + $1,
-        playerWins = stats.playerWins + $2,
+        SET aiWins = stats.aiwins + $1,
+        playerWins = stats.playerwins + $2,
         draws = stats.draws + $3
         RETURNING *;
     `;
@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 export async function DELETE() {
   try {
     await query(`UPDATE stats
-                 SET aiWins     = 0,
-                     playerWins = 0,
+                 SET aiwins     = 0,
+                     playerwins = 0,
                      draws      = 0`);
     return NextResponse.json({message: "Statistiques réinitialisées."});
   } catch (error) {

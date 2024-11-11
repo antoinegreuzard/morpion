@@ -3,13 +3,13 @@
 import React, {useEffect, useState} from "react";
 
 interface Stats {
-  aiWins: number;
-  playerWins: number;
+  aiwins: number;
+  playerwins: number;
   draws: number;
 }
 
 const Stats: React.FC = () => {
-  const [stats, setStats] = useState<Stats>({aiWins: 0, playerWins: 0, draws: 0});
+  const [stats, setStats] = useState<Stats>({aiwins: 0, playerwins: 0, draws: 0});
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,10 +55,10 @@ const Stats: React.FC = () => {
       {!isLoading && !error && (
         <>
           <p className="text-lg mb-2">
-            Victoires IA : <span className="font-bold text-[var(--color-ai)]">{stats.aiWins}</span>
+            Victoires IA : <span className="font-bold text-[var(--color-ai)]">{stats.aiwins}</span>
           </p>
           <p className="text-lg mb-2">
-            Victoires Joueur : <span className="font-bold text-[var(--color-player)]">{stats.playerWins}</span>
+            Victoires Joueur : <span className="font-bold text-[var(--color-player)]">{stats.playerwins}</span>
           </p>
           <p className="text-lg mb-2">
             Matchs Nuls : <span className="font-bold text-[var(--color-draw)]">{stats.draws}</span>

@@ -25,6 +25,7 @@ const Leaderboard: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log(data)
       setLeaderboard(data);
     } catch (error: unknown) {
       if (error instanceof Error) {
