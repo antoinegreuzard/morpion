@@ -3,32 +3,51 @@ import {render, screen} from "@testing-library/react";
 import ScoreBoard from "@/components/ScoreBoard";
 
 describe("ScoreBoard Component", () => {
-  it("affiche correctement le titre", () => {
-    render(<ScoreBoard playerScore={0} aiScore={0} drawScore={0}/>);
+  const defaultProps = {
+    playerScore: 3,
+    aiScore: 2,
+    drawScore: 1,
+    playerName: "Joueur 1",
+    opponentName: "Joueur 2",
+    mode: "multiplayer" as "solo" | "multiplayer",
+  };
+
+  it("should render the component correctly", () => {
+    render(<ScoreBoard {...defaultProps} />);
+
+    // Vérifier le titre
     expect(screen.getByText("Score")).toBeInTheDocument();
   });
 
-  it("affiche le score du joueur", () => {
-    render(<ScoreBoard playerScore={5} aiScore={3} drawScore={2}/>);
-    const playerScore = screen.getByText("Joueur (X) :");
-    const playerScoreValue = screen.getByText("5");
-    expect(playerScore).toBeInTheDocument();
-    expect(playerScoreValue).toBeInTheDocument();
+  it("should display the player's score and name", () => {
+    render(<ScoreBoard {...defaultProps} />);
+
+    // Vérifier le nom du joueur et son score
+    expect(screen.getByText("Joueur 1 (X) :")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("affiche le score des matchs nuls", () => {
-    render(<ScoreBoard playerScore={5} aiScore={3} drawScore={2}/>);
-    const drawScore = screen.getByText("Matchs nuls :");
-    const drawScoreValue = screen.getByText("2");
-    expect(drawScore).toBeInTheDocument();
-    expect(drawScoreValue).toBeInTheDocument();
+  it("should display the draw score", () => {
+    render(<ScoreBoard {...defaultProps} />);
+
+    // Vérifier le score des matchs nuls
+    expect(screen.getByText("Matchs nuls :")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("affiche le score de l'IA", () => {
-    render(<ScoreBoard playerScore={5} aiScore={3} drawScore={2}/>);
-    const aiScore = screen.getByText("IA (O) :");
-    const aiScoreValue = screen.getByText("3");
-    expect(aiScore).toBeInTheDocument();
-    expect(aiScoreValue).toBeInTheDocument();
+  it("should display the opponent's score and name in multiplayer mode", () => {
+    render(<ScoreBoard {...defaultProps} />);
+
+    // Vérifier le nom de l'adversaire et son score en mode multijoueur
+    expect(screen.getByText("Joueur 2 (O) :")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("should display the opponent's score as the player's name in solo mode", () => {
+    render(<ScoreBoard {...defaultProps} mode="solo"/>);
+
+    // En mode solo, le nom de l'adversaire doit être le nom du joueur
+    expect(screen.getByText("Joueur 1 (O) :")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 });
