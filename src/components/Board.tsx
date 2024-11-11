@@ -23,7 +23,6 @@ const Board: React.FC = () => {
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
     resetMemo();
-
     setSquares(Array(9).fill(null));
     setIsXNext(firstPlayer === "player");
     setStartingPlayer(firstPlayer);
@@ -95,7 +94,44 @@ const Board: React.FC = () => {
     }
   }, [squares, aiSymbol, playerSymbol, isXNext, winner, mode]);
 
-  // Appeler l'IA après que l'utilisateur a fait un choix ou cliqué sur "Rejouer"
+  // Sauvegarder la partie
+  const saveGame = async () => {
+    await fetch("/api/save-game", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({squares, isXNext, playerScore, aiScore, drawScore}),
+    });
+  };
+
+  // Charger la partie
+  const loadGame = async () => {
+    const response = await fetch("/api/load-game");
+    if (response.ok) {
+      const data = await response.json();
+      setSquares(data.squares);
+      setIsXNext(data.isXNext);
+      setPlayerScore(data.playerScore);
+      setAiScore(data.aiScore);
+      setDrawScore(data.drawScore);
+      setMode("solo"); // Par défaut, on charge en mode solo
+      setStartingPlayer("player"); // Par défaut, on laisse le joueur commencer
+    }
+  };
+
+  // Mettre à jour les statistiques
+  const updateStats = async () => {
+    const body = {
+      aiWins: winner === aiSymbol ? 1 : 0,
+      playerWins: winner === playerSymbol ? 1 : 0,
+      draws: winner === "Draw" ? 1 : 0,
+    };
+    await fetch("/api/stats", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(body),
+    });
+  };
+
   useEffect(() => {
     if (mode === "solo" && startingPlayer === "ai" && squares.every((square) => square === null)) {
       makeAIMove();
@@ -117,8 +153,8 @@ const Board: React.FC = () => {
         setDrawScore((prev) => prev + 1);
       }
 
+      updateStats();
       setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
-      return;
     }
 
     if (mode === "solo" && !isXNext && !winner) {
@@ -133,19 +169,19 @@ const Board: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center">
-      {/* Sélection du mode */}
+      {/* Choix du mode de jeu */}
       {!mode && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold mb-4">Choisissez le mode de jeu :</h2>
           <div className="flex justify-center">
             <button
-              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600"
+              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               onClick={() => setMode("solo")}
             >
               Solo (IA)
             </button>
             <button
-              className="px-4 py-2 m-2 bg-green-500 text-white rounded-lg shadow-lg hover:bg-green-600"
+              className="px-4 py-2 m-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
               onClick={() => setMode("multiplayer")}
             >
               Multijoueur
@@ -154,20 +190,20 @@ const Board: React.FC = () => {
         </div>
       )}
 
-      {/* Menu de sélection du joueur */}
+      {/* Choix du joueur qui commence */}
       {mode && !startingPlayer && (
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-center mb-4">Qui commence ?</h2>
           <div className="flex justify-center">
             <button
-              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg shadow-lg hover:bg-blue-600"
+              className="px-4 py-2 m-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
               onClick={() => initializeGame("player")}
             >
               Joueur commence (X)
             </button>
             {mode === "solo" && (
               <button
-                className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg shadow-lg hover:bg-red-600"
+                className="px-4 py-2 m-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
                 onClick={() => initializeGame("ai")}
               >
                 IA commence (X)
@@ -177,12 +213,16 @@ const Board: React.FC = () => {
         </div>
       )}
 
-      {/* ScoreBoard */}
-      <div className="w-full max-w-md mb-8">
-        <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
+      <div className="mb-6">
+        <button onClick={saveGame} className="px-4 py-2 bg-blue-500 text-white rounded-lg">
+          Sauvegarder la Partie
+        </button>
+        <button onClick={loadGame} className="px-4 py-2 ml-4 bg-green-500 text-white rounded-lg">
+          Charger la Partie
+        </button>
       </div>
 
-      {/* Plateau de jeu */}
+      <ScoreBoard playerScore={playerScore} aiScore={aiScore} drawScore={drawScore}/>
       {startingPlayer && (
         <div>
           <h1 className={`text-3xl font-bold mb-6 ${winner ? "animate-bounce text-green-500" : ""}`}>
@@ -195,13 +235,8 @@ const Board: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Bouton Rejouer */}
       {winner && (
-        <button
-          className="mt-6 px-6 py-3 bg-gray-700 text-white rounded-lg shadow-lg hover:bg-gray-800"
-          onClick={resetGame}
-        >
+        <button onClick={resetGame} className="mt-6 px-6 py-3 bg-gray-700 text-white rounded-lg">
           Rejouer
         </button>
       )}
