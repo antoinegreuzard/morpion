@@ -22,6 +22,8 @@ const Board: React.FC = () => {
   const [aiScore, setAiScore] = useState(0);
   const [drawScore, setDrawScore] = useState(0);
   const [scoreUpdated, setScoreUpdated] = useState(false);
+  const [playerName, setPlayerName] = useState<string>("Joueur 1");
+  const [opponentName, setOpponentName] = useState<string>(mode === "solo" ? "IA" : "Joueur 2");
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -94,7 +96,7 @@ const Board: React.FC = () => {
 
   // Mettre à jour le leaderboard
   const updateLeaderboard = useCallback(async (currentWinner: string) => {
-    const player = currentWinner === aiSymbol ? "AI" : "Player";
+    const player = currentWinner === aiSymbol ? opponentName : playerName;
     const score = 1;
 
     try {
@@ -218,6 +220,14 @@ const Board: React.FC = () => {
   }, [mode, startingPlayer, squares, makeAIMove]);
 
   useEffect(() => {
+    if (mode === "solo") {
+      setOpponentName("IA");
+    } else if (mode === "multiplayer") {
+      setOpponentName("Joueur 2");
+    }
+  }, [mode]);
+
+  useEffect(() => {
     const currentWinner = checkWinner(squares);
     if (currentWinner && !scoreUpdated) {
       setWinner(currentWinner);
@@ -273,6 +283,29 @@ const Board: React.FC = () => {
         </div>
       )}
 
+      {/* Champs pour les noms des joueurs */}
+      {mode && !startingPlayer && (
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
+          <input
+            type="text"
+            placeholder="Nom du joueur 1"
+            className="mb-2 p-2 border border-gray-300 rounded-lg"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+          {mode === "multiplayer" && (
+            <input
+              type="text"
+              placeholder="Nom du joueur 2"
+              className="p-2 border border-gray-300 rounded-lg"
+              value={opponentName}
+              onChange={(e) => setOpponentName(e.target.value)}
+            />
+          )}
+        </div>
+      )}
+
       {/* Sélection du joueur qui commence */}
       {mode && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
@@ -282,14 +315,14 @@ const Board: React.FC = () => {
               className="px-6 py-3 bg-blue-500 text-white rounded-lg"
               onClick={() => initializeGame("player")}
             >
-              Joueur commence (X)
+              {playerName} commence (X)
             </button>
             {mode === "solo" && (
               <button
                 className="px-6 py-3 bg-red-500 text-white rounded-lg"
                 onClick={() => initializeGame("ai")}
               >
-                IA commence (X)
+                {opponentName} commence (X)
               </button>
             )}
           </div>
@@ -311,12 +344,8 @@ const Board: React.FC = () => {
       {/* Plateau de jeu */}
       {startingPlayer && (
         <div className="flex flex-col items-center gap-4">
-          <h1
-            className={`text-3xl font-bold mb-4 ${
-              winner ? "animate-bounce text-green-500" : ""
-            }`}
-          >
-            {winner ? `Gagnant : ${winner}` : `Prochain coup : ${isXNext ? playerSymbol : aiSymbol}`}
+          <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
+            {winner ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}` : `Prochain coup : ${isXNext ? playerName : opponentName}`}
           </h1>
           <div className="grid grid-cols-3 gap-4">
             {squares.map((value, index) => (
