@@ -21,12 +21,11 @@ export async function GET(req: NextRequest) {
                                 ORDER BY score DESC`);
     return NextResponse.json(result.rows);
   } catch (error) {
-    console.error("Erreur lors de la récupération du classement :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }
 
-// Ajouter ou mettre à jour le score d'un joueur
+// Ajouter ou mettre à jour le score d'un joueur (en cumulant le score)
 export async function POST(req: NextRequest) {
   try {
     const {player, score} = await req.json();
@@ -34,17 +33,17 @@ export async function POST(req: NextRequest) {
     const text = `
       INSERT INTO leaderboard (player, score)
       VALUES ($1, $2) ON CONFLICT (player) DO
-      UPDATE
-        SET score = GREATEST(leaderboard.score, $2)
+      UPDATE SET score = leaderboard.score + $2
         RETURNING *;
     `;
     const values = [player, score];
     const result = await query(text, values);
 
     return NextResponse.json({message: "Score mis à jour !", player: result.rows[0]});
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du score :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      return NextResponse.json({message: error.message}, {status: 500});
+    }
   }
 }
 
@@ -55,7 +54,6 @@ export async function DELETE() {
                  FROM leaderboard`);
     return NextResponse.json({message: "Classement réinitialisé."});
   } catch (error) {
-    console.error("Erreur lors de la réinitialisation du classement :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }

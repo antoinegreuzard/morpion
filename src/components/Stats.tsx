@@ -1,49 +1,18 @@
-"use client";
+import React from "react";
 
-import React, {useEffect, useState} from "react";
-
-interface Stats {
+export interface StatsData {
   aiwins: number;
   playerwins: number;
   draws: number;
 }
 
-const Stats: React.FC = () => {
-  const [stats, setStats] = useState<Stats>({aiwins: 0, playerwins: 0, draws: 0});
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+interface StatsProps {
+  stats: StatsData;
+  isLoading: boolean;
+  error: string | null;
+}
 
-  // Charger les statistiques
-  const fetchStats = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/stats");
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la récupération des statistiques.");
-      }
-
-      const data = await response.json();
-      setStats(data);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Erreur réseau :", error.message);
-        setError("Impossible de récupérer les statistiques. Veuillez réessayer plus tard.");
-      } else {
-        console.error("Erreur inconnue :", error);
-        setError("Une erreur inconnue est survenue.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
+const Stats: React.FC<StatsProps> = ({stats, isLoading, error}) => {
   return (
     <div className="p-6 rounded-lg shadow-lg bg-white">
       <h2 className="text-2xl font-bold text-[var(--color-player)] mb-4">Statistiques</h2>

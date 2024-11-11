@@ -8,8 +8,7 @@ export async function GET() {
                                 FROM stats LIMIT 1`);
     return NextResponse.json(result.rows[0] || {aiWins: 0, playerWins: 0, draws: 0});
   } catch (error) {
-    console.error("Erreur lors de la récupération des statistiques :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }
 
@@ -32,8 +31,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result.rows[0]);
   } catch (error) {
-    console.error("Erreur lors de la mise à jour des statistiques :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }
 
@@ -46,7 +44,6 @@ export async function DELETE() {
                      draws      = 0`);
     return NextResponse.json({message: "Statistiques réinitialisées."});
   } catch (error) {
-    console.error("Erreur lors de la réinitialisation des statistiques :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }

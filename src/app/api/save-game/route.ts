@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({message: "Partie sauvegardée !", gameId: result.rows[0].id});
   } catch (error) {
-    console.error("Erreur lors de la sauvegarde :", error);
-    return NextResponse.json({message: "Erreur serveur."}, {status: 500});
+    return NextResponse.json({message: error}, {status: 500});
   }
 }

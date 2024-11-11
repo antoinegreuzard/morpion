@@ -1,7 +1,7 @@
 /**
  * Effectue une rotation de 90 degrés du plateau.
  */
-const rotate90 = (board: (string | null)[]): (string | null)[] => {
+export const rotate90 = (board: (string | null)[]): (string | null)[] => {
   return [
     board[6], board[3], board[0],
     board[7], board[4], board[1],
@@ -12,7 +12,7 @@ const rotate90 = (board: (string | null)[]): (string | null)[] => {
 /**
  * Effectue une réflexion diagonale (bas gauche à haut droit).
  */
-const reflectDiagonal = (board: (string | null)[]): (string | null)[] => {
+export const reflectDiagonal = (board: (string | null)[]): (string | null)[] => {
   return [
     board[0], board[3], board[6],
     board[1], board[4], board[7],
@@ -23,7 +23,7 @@ const reflectDiagonal = (board: (string | null)[]): (string | null)[] => {
 /**
  * Effectue une réflexion horizontale du plateau.
  */
-const reflectHorizontal = (board: (string | null)[]): (string | null)[] => {
+export const reflectHorizontal = (board: (string | null)[]): (string | null)[] => {
   return [
     board[2], board[1], board[0],
     board[5], board[4], board[3],
@@ -34,7 +34,7 @@ const reflectHorizontal = (board: (string | null)[]): (string | null)[] => {
 /**
  * Génère toutes les transformations possibles du plateau (rotations et réflexions).
  */
-const getAllTransformations = (board: (string | null)[]): (string | null)[][] => {
+export const getAllTransformations = (board: (string | null)[]): (string | null)[][] => {
   const transformations: (string | null)[][] = [];
 
   // Générer les rotations (0°, 90°, 180°, 270°)
@@ -61,3 +61,4 @@ export const getCanonicalForm = (board: (string | null)[]): string => {
   // Retourner la transformation minimale (forme canonique)
   return boardStrings.sort()[0];
 };
+
