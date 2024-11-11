@@ -1,7 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f0f4f8;
+  color: #333;
+}
+
+:root {
+  --color-player: #4A90E2;
+  --color-ai: #FF6B6B;
+  --color-draw: #9CA3AF;
+  --color-background: #f0f4f8;
+  --color-dark-background: #1f2937;
+}
+
+.dark {
+  --color-background: #1f2937;
+  --color-player: #4A90E2;
+  --color-ai: #FF6B6B;
+  --color-draw: #9CA3AF;
+}
+
+/* Animation pop */
 @keyframes pop {
   0% {
     transform: scale(0);

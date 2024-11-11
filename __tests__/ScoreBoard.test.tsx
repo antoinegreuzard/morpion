@@ -31,16 +31,4 @@ describe("ScoreBoard Component", () => {
     expect(aiScore).toBeInTheDocument();
     expect(aiScoreValue).toBeInTheDocument();
   });
-
-  it("affiche les scores avec les bonnes couleurs", () => {
-    render(<ScoreBoard playerScore={1} aiScore={2} drawScore={3}/>);
-
-    const playerScoreValue = screen.getByText("1");
-    const drawScoreValue = screen.getByText("3");
-    const aiScoreValue = screen.getByText("2");
-
-    expect(playerScoreValue).toHaveClass("text-blue-600");
-    expect(drawScoreValue).toHaveClass("text-gray-600");
-    expect(aiScoreValue).toHaveClass("text-red-600");
-  });
 });

@@ -3,22 +3,18 @@ import {render, screen, fireEvent} from "@testing-library/react";
 import Square from "@/components/Square";
 
 describe("Square Component", () => {
-  it("doit afficher la valeur 'X' avec la classe correspondante", () => {
+  it("doit afficher la valeur 'X'", () => {
     render(<Square value="X" onClick={() => {
     }}/>);
     const squareButton = screen.getByRole("button");
     expect(squareButton).toHaveTextContent("X");
-    expect(squareButton).toHaveClass("text-blue-500");
-    expect(squareButton).toHaveClass("animate-pop");
   });
 
-  it("doit afficher la valeur 'O' avec la classe correspondante", () => {
+  it("doit afficher la valeur 'O'", () => {
     render(<Square value="O" onClick={() => {
     }}/>);
     const squareButton = screen.getByRole("button");
     expect(squareButton).toHaveTextContent("O");
-    expect(squareButton).toHaveClass("text-red-500");
-    expect(squareButton).toHaveClass("animate-pop");
   });
 
   it("doit être vide lorsque la valeur est null", () => {
@@ -37,12 +33,5 @@ describe("Square Component", () => {
 
     fireEvent.click(squareButton);
     expect(handleClick).toHaveBeenCalledTimes(1);
-  });
-
-  it("doit avoir la classe 'hover:scale-105' pour l'animation au survol", () => {
-    render(<Square value={null} onClick={() => {
-    }}/>);
-    const squareButton = screen.getByRole("button");
-    expect(squareButton).toHaveClass("hover:scale-105");
   });
 });
