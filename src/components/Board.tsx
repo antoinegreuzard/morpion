@@ -106,8 +106,6 @@ const Board: React.FC = () => {
         body: JSON.stringify({squares, isXNext, playerScore, aiScore, drawScore}),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
         alert("La sauvegarde a échoué.");
       } else {

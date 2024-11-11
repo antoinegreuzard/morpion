@@ -1,25 +1,26 @@
-# Tic-Tac-Toe en Next.js avec IA (Minimax)
+# 🕹️ Tic-Tac-Toe en Next.js avec IA (Minimax)
 
 Ce projet est un jeu de **Tic-Tac-Toe** développé en **Next.js** avec **TypeScript**, utilisant l'algorithme **Minimax**
-pour l'IA. Il propose également un mode **Multijoueur** pour jouer contre un autre joueur.
+pour l'IA. Il propose également un mode **Multijoueur** pour jouer contre un autre joueur sur le même appareil.
 
 ## 🛠️ Technologies Utilisées
 
 - **Next.js** (React avec App Router)
-- **TypeScript** pour un typage robuste
-- **Tailwind CSS** pour le style
-- **Minimax** pour l'algorithme d'IA
-- **pnpm** pour la gestion des paquets
+- **TypeScript** pour un typage robuste et sécurisé
+- **Tailwind CSS** pour un style moderne et réactif
+- **Minimax** avec optimisation pour l'algorithme d'IA
+- **pnpm** pour la gestion efficace des paquets
 
 ## 🚀 Fonctionnalités
 
-- **Solo** : Joueur contre IA
-- **Multijoueur** : Deux joueurs sur le même appareil
-- **Choix du mode de jeu** : Sélection du mode Solo ou Multijoueur
-- **Sélection du premier joueur** : Choisissez qui commence (Joueur ou IA)
-- **Algorithme Minimax optimisé** pour une IA performante
-- **Détection automatique du gagnant** et affichage du score
-- **Interface réactive et moderne** avec Tailwind CSS
+- **Mode Solo** : Jouez contre une IA performante basée sur Minimax
+- **Mode Multijoueur** : Jouez à deux sur le même appareil
+- **Choix du mode de jeu** : Sélection intuitive entre Solo et Multijoueur
+- **Choix du premier joueur** : Définissez qui commence la partie (Joueur ou IA)
+- **Algorithme Minimax avancé** : Prend en compte toutes les possibilités pour une IA intelligente
+- **Détection automatique du gagnant** : Affichage clair du score et du vainqueur
+- **Interface moderne** : Créée avec Tailwind CSS pour une expérience utilisateur agréable
+- **Sauvegarde et Chargement de Partie** : Fonctionnalités pour sauvegarder et reprendre une partie
 
 ## 📦 Installation
 
@@ -55,6 +56,9 @@ les chances de victoire de l'IA tout en minimisant celles du joueur humain.
 - **O gagne** : Score de +10
 - **Match nul** : Score de 0
 
+L'algorithme utilise également l'optimisation **Alpha-Beta Pruning** pour réduire le nombre de calculs et accélérer la
+prise de décision.
+
 ## 📁 Arborescence du Projet
 
 ```
@@ -68,10 +72,15 @@ tic-tac-toe/
 │   │   └── page.tsx
 │   ├── components/
 │   │   ├── Board.tsx
-│   │   └── Square.tsx
+│   │   ├── Square.tsx
+│   │   ├── ScoreBoard.tsx
+│   │   ├── GameControls.tsx
+│   │   ├── Leaderboard.tsx
+│   │   └── Stats.tsx
 │   ├── utils/
 │   │   ├── checkWinner.ts
-│   │   └── minimax.ts
+│   │   ├── minimax.ts
+│   │   └── gameStore.ts
 ├── .eslintrc.json
 ├── tailwind.config.js
 ├── tsconfig.json
@@ -82,7 +91,7 @@ tic-tac-toe/
 
 ## 📝 Licence
 
-Ce projet est sous licence MIT. Vous pouvez l'utiliser librement.
+Ce projet est sous licence MIT. Vous pouvez l'utiliser, le modifier et le distribuer librement.
 
 ## 👤 Auteur
 
