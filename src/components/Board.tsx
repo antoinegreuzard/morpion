@@ -107,7 +107,6 @@ const Board: React.FC = () => {
       });
 
       const data = await response.json();
-      console.log("Réponse de la sauvegarde :", data);
 
       if (!response.ok) {
         alert("La sauvegarde a échoué.");
@@ -127,7 +126,6 @@ const Board: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Données chargées :", data);
 
         setSquares(data.squares);
         setIsXNext(data.isXNext);
