@@ -143,7 +143,21 @@ const Board: React.FC = () => {
   // Mettre à jour le leaderboard
   const updateLeaderboard = useCallback(async (currentWinner: string) => {
     // Utilisez "IA" comme nom si le mode est solo et l'IA gagne
-    const player = currentWinner === aiSymbol && mode === "solo" ? "IA" : playerName;
+    let player = "";
+
+    // Déterminer le joueur à mettre à jour dans le leaderboard
+    if (mode === "solo") {
+      player = currentWinner === aiSymbol ? "IA" : playerName;
+    } else if (mode === "multiplayer") {
+      if (currentWinner === playerSymbol) {
+        player = playerName; // Joueur 1 gagne
+      } else if (currentWinner === aiSymbol) {
+        player = opponentName; // Joueur 2 gagne
+      } else {
+        return; // Pas de mise à jour en cas de match nul en multijoueur
+      }
+    }
+
     const score = 1;
 
     try {
@@ -162,7 +176,7 @@ const Board: React.FC = () => {
         alert(error.message);
       }
     }
-  }, [aiSymbol, mode, playerName]);
+  }, [aiSymbol, mode, opponentName, playerName, playerSymbol]);
 
   // Sauvegarder la partie
   const saveGame = async () => {
@@ -255,11 +269,11 @@ const Board: React.FC = () => {
 
   useEffect(() => {
     if (mode === "solo") {
-      setOpponentName(playerName);
-    } else if (mode === "multiplayer") {
+      setOpponentName("IA");
+    } else if (mode === "multiplayer" && opponentName.trim() === "") {
       setOpponentName("Joueur 2");
     }
-  }, [mode, playerName]);
+  }, [mode, opponentName]);
 
   useEffect(() => {
     const currentWinner = checkWinner(squares);
@@ -279,7 +293,9 @@ const Board: React.FC = () => {
 
       // Utiliser `currentWinner` au lieu de `winner`
       (async () => {
-        await updateStats(currentWinner);
+        if (mode === "solo") {
+          await updateStats(currentWinner);
+        }
         await updateLeaderboard(currentWinner);
       })();
     }
@@ -361,7 +377,7 @@ const Board: React.FC = () => {
                 className="px-6 py-3 bg-red-500 text-white rounded-lg"
                 onClick={() => initializeGame("ai")}
               >
-                {opponentName} commence (X)
+                IA commence (X)
               </button>
             )}
           </div>
@@ -386,11 +402,13 @@ const Board: React.FC = () => {
               isLoading={isLeaderboardLoading}
               error={leaderboardError}
             />
-            <Stats
-              stats={stats}
-              isLoading={isStatsLoading}
-              error={statsError}
-            />
+            {mode === "solo" && (
+              <Stats
+                stats={stats}
+                isLoading={isStatsLoading}
+                error={statsError}
+              />
+            )}
           </div>
         </div>
       )}

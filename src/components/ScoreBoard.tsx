@@ -38,7 +38,7 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({
         <div className="flex items-center gap-2">
           <FaUser className="text-[var(--color-ai)] text-3xl"/>
           <p className="text-xl font-semibold">
-            {mode === "solo" ? playerName : opponentName} (O) :
+            {mode === "solo" ? 'IA' : opponentName} (O) :
           </p>
           <span className="text-3xl font-bold">{aiScore}</span>
         </div>
