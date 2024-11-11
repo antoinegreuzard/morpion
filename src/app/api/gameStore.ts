@@ -9,3 +9,7 @@ export let savedGame: {
 export const setSavedGame = (game: typeof savedGame) => {
   savedGame = game;
 };
+
+export const getSavedGame = () => {
+  return savedGame;
+};

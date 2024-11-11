@@ -99,27 +99,53 @@ const Board: React.FC = () => {
 
   // Sauvegarder la partie
   const saveGame = async () => {
-    await fetch("/api/save-game", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({squares, isXNext, playerScore, aiScore, drawScore}),
-    });
+    try {
+      const response = await fetch("/api/save-game", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({squares, isXNext, playerScore, aiScore, drawScore}),
+      });
+
+      const data = await response.json();
+      console.log("Réponse de la sauvegarde :", data);
+
+      if (!response.ok) {
+        alert("La sauvegarde a échoué.");
+      } else {
+        alert("Partie sauvegardée avec succès !");
+      }
+    } catch (error) {
+      console.error("Erreur réseau :", error);
+      alert("Une erreur réseau est survenue lors de la sauvegarde.");
+    }
   };
 
   // Charger la partie
   const loadGame = async () => {
-    const response = await fetch("/api/load-game");
-    if (response.ok) {
-      const data = await response.json();
-      setSquares(data.squares);
-      setIsXNext(data.isXNext);
-      setPlayerScore(data.playerScore);
-      setAiScore(data.aiScore);
-      setDrawScore(data.drawScore);
+    try {
+      const response = await fetch("/api/load-game");
 
-      // Rétablir le mode et le joueur qui commence à partir des données sauvegardées
-      setMode(data.mode ?? "solo");
-      setStartingPlayer(data.startingPlayer ?? "player");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Données chargées :", data);
+
+        setSquares(data.squares);
+        setIsXNext(data.isXNext);
+        setPlayerScore(data.playerScore);
+        setAiScore(data.aiScore);
+        setDrawScore(data.drawScore);
+
+        // Rétablir le mode et le joueur qui commence à partir des données sauvegardées
+        setMode(data.mode ?? "solo");
+        setStartingPlayer(data.startingPlayer ?? "player");
+      } else {
+        const errorData = await response.json();
+        console.error("Erreur lors du chargement :", errorData.message);
+        alert("Aucune partie sauvegardée trouvée.");
+      }
+    } catch (error) {
+      console.error("Erreur réseau lors du chargement :", error);
+      alert("Une erreur réseau est survenue.");
     }
   };
 

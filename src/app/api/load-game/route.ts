@@ -1,7 +1,9 @@
 import {NextResponse} from "next/server";
-import {savedGame} from "@/app/api/gameStore";
+import {getSavedGame} from "../gameStore";
 
 export async function GET() {
+  const savedGame = getSavedGame();
+
   if (savedGame) {
     return NextResponse.json(savedGame);
   }
