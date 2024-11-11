@@ -28,12 +28,12 @@ const Leaderboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold mb-4">Classement</h2>
+    <div className="p-6 rounded-lg shadow-lg bg-white">
+      <h2 className="text-2xl font-bold text-[var(--color-player)] mb-4">Classement</h2>
       <ul>
         {leaderboard.map((entry, index) => (
-          <li key={index} className="mb-2">
-            {entry.player}: {entry.score}
+          <li key={index} className="mb-2 text-lg">
+            {entry.player}: <span className="font-bold">{entry.score}</span>
           </li>
         ))}
       </ul>

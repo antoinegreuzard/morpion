@@ -29,11 +29,14 @@ const Stats: React.FC = () => {
   }, []);
 
   return (
-    <div className="mb-6">
-      <h2 className="text-2xl font-bold mb-4">Statistiques</h2>
-      <p>Victoires IA : {stats.aiWins}</p>
-      <p>Victoires Joueur : {stats.playerWins}</p>
-      <p>Matchs Nuls : {stats.draws}</p>
+    <div className="p-6 rounded-lg shadow-lg bg-white">
+      <h2 className="text-2xl font-bold text-[var(--color-player)] mb-4">Statistiques</h2>
+      <p className="text-lg mb-2">Victoires IA : <span
+        className="font-bold text-[var(--color-ai)]">{stats.aiWins}</span></p>
+      <p className="text-lg mb-2">Victoires Joueur : <span
+        className="font-bold text-[var(--color-player)]">{stats.playerWins}</span></p>
+      <p className="text-lg mb-2">Matchs Nuls : <span
+        className="font-bold text-[var(--color-draw)]">{stats.draws}</span></p>
       <button
         className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
         onClick={resetStats}
