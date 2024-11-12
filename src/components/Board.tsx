@@ -548,18 +548,16 @@ const Board: React.FC = () => {
       )}
 
       {/* Champs pour les noms des joueurs */}
-      {mode && !startingPlayer && (
+      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
-          {mode === "multiplayer" && isRoomReady && (
-            <input
-              type="text"
-              placeholder="Nom du joueur 1"
-              className="mb-2 p-2 border border-gray-300 rounded-lg"
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-            />
-          )}
+          <input
+            type="text"
+            placeholder="Nom du joueur 1"
+            className="mb-2 p-2 border border-gray-300 rounded-lg"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
           {mode === "multiplayer" && (
             <input
               type="text"
@@ -573,7 +571,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {mode && !startingPlayer && (
+      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">

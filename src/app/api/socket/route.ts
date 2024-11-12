@@ -44,8 +44,6 @@ export async function GET(req: NextApiRequest) {
     });
 
     console.log("Socket.IO initialisé");
-  } else {
-    console.log("Socket.IO déjà initialisé");
   }
 
   // Utiliser la nouvelle syntaxe de réponse
