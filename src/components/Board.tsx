@@ -8,12 +8,13 @@ import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
+import io from "socket.io-client";
 
 const Board: React.FC = () => {
   const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
   const [isXNext, setIsXNext] = useState(true);
   const [winner, setWinner] = useState<string | null>(null);
-  const [mode, setMode] = useState<"solo" | "multiplayer" | null>(null);
+  const [mode, setMode] = useState<"solo" | "multiplayer" | "online" | null>(null);
   const [startingPlayer, setStartingPlayer] = useState<"player" | "ai" | null>(null);
   const [nextStartingPlayer, setNextStartingPlayer] = useState<"player" | "ai">("player");
   const [playerSymbol, setPlayerSymbol] = useState<"X" | "O">("X");
@@ -30,6 +31,7 @@ const Board: React.FC = () => {
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [socket, setSocket] = useState<any>(null);
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -47,6 +49,10 @@ const Board: React.FC = () => {
     } else {
       setPlayerSymbol("O");
       setAiSymbol("X");
+    }
+
+    if (mode === "online" && socket) {
+      socket.emit("startGame", startingPlayer);
     }
 
     // Mettre à jour le leaderboard et les statistiques
@@ -98,6 +104,10 @@ const Board: React.FC = () => {
     setSquares(newSquares);
 
     setIsXNext(mode !== "solo" ? !isXNext : false);
+
+    if (mode === "online" && socket) {
+      socket.emit("move", "defaultRoom", {index, symbol});
+    }
   };
 
   // Fonction pour que l'IA joue son coup
@@ -310,9 +320,49 @@ const Board: React.FC = () => {
     fetchStats();
   }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
+  useEffect(() => {
+    if (mode === "online" && !socket) {
+      const newSocket = io("http://localhost:3000");
+      setSocket(newSocket);
+
+      // Générer un roomId unique ou demander à l'utilisateur
+      const roomId = prompt("Entrez l'ID de la salle ou laissez vide pour en créer une nouvelle :") || `room-${Date.now()}`;
+
+      // Rejoindre la salle
+      newSocket.emit("joinRoom", roomId);
+
+      // Écouter les mouvements de l'autre joueur
+      newSocket.on("moveMade", (moveData: any) => {
+        const {index, symbol} = moveData;
+        const newSquares = squares.slice();
+        newSquares[index] = symbol;
+        setSquares(newSquares);
+        setIsXNext(symbol !== playerSymbol);
+      });
+
+      // Écouter l'événement de début de partie
+      newSocket.on("startGame", (firstPlayer: "player" | "ai") => {
+        initializeGame(firstPlayer);
+      });
+
+      // Écouter la réinitialisation de la partie
+      newSocket.on("resetGame", () => {
+        initializeGame(nextStartingPlayer);
+      });
+
+      return () => {
+        newSocket.disconnect();
+      };
+    }
+  }, [mode, socket, squares, playerSymbol, nextStartingPlayer]);
+
   // Réinitialiser le jeu
   const resetGame = () => {
     initializeGame(nextStartingPlayer);
+
+    if (mode === "online" && socket) {
+      socket.emit("resetGame");
+    }
   };
 
   return (
@@ -332,7 +382,13 @@ const Board: React.FC = () => {
               className="px-6 py-3 bg-green-500 text-white rounded-lg"
               onClick={() => setMode("multiplayer")}
             >
-              Multijoueur
+              Multijoueur local
+            </button>
+            <button
+              className="px-6 py-3 bg-purple-500 text-white rounded-lg"
+              onClick={() => setMode("online")}
+            >
+              Multijoueur Online
             </button>
           </div>
         </div>
