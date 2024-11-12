@@ -37,7 +37,6 @@ const Board: React.FC = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
-  const [isCreator, setIsCreator] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -523,7 +522,7 @@ const Board: React.FC = () => {
 
       {/* Configuration du jeu online */}
       {mode === "online" && !roomId && !startingPlayer && !isWaitingForOpponent && (
-        <OnlineGameSetup onJoinRoom={(roomId, playerName) => joinRoom(roomId, playerName, true)}/>
+        <OnlineGameSetup onJoinRoom={(roomId, playerName) => joinRoom(roomId, playerName)}/>
       )}
 
       {/* Configuration des joueurs pour tous les modes */}
