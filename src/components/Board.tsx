@@ -315,7 +315,7 @@ const Board: React.FC = () => {
     } else if (mode === "multiplayer" && opponentName.trim() === "") {
       setOpponentName("Joueur 2");
     }
-  }, [mode]);
+  }, [mode, opponentName]);
 
   useEffect(() => {
     if (mode === "online" && socket && !socket.connected) {
@@ -548,16 +548,18 @@ const Board: React.FC = () => {
       )}
 
       {/* Champs pour les noms des joueurs */}
-      {mode && mode !== "online" && !startingPlayer && (
+      {mode && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
-          <input
-            type="text"
-            placeholder="Nom du joueur 1"
-            className="mb-2 p-2 border border-gray-300 rounded-lg"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-          />
+          {mode === "multiplayer" && isRoomReady && (
+            <input
+              type="text"
+              placeholder="Nom du joueur 1"
+              className="mb-2 p-2 border border-gray-300 rounded-lg"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+            />
+          )}
           {mode === "multiplayer" && (
             <input
               type="text"
@@ -571,7 +573,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {mode && mode !== "online" && !startingPlayer && (
+      {mode && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">

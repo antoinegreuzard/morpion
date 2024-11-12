@@ -8,7 +8,7 @@ export async function GET(req: NextApiRequest) {
   if (!io) {
     console.log("Initialisation du serveur Socket.IO");
 
-    const httpServer: HTTPServer = req.socket as HTTPServer;
+    const httpServer: HTTPServer = req.socket as unknown as HTTPServer;
 
     io = new IOServer(httpServer, {
       cors: {
