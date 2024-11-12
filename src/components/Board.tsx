@@ -37,6 +37,7 @@ const Board: React.FC = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+  const [isRoomCreator, setIsRoomCreator] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -132,19 +133,19 @@ const Board: React.FC = () => {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
+      // Déterminer si le joueur est le créateur de la salle
+      setIsRoomCreator(data.playerName === playerName);
+
       // Si `opponentName` est défini et différent du joueur actuel, l'adversaire est présent
       if (data.opponentName && data.opponentName !== playerName) {
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
-      }
-      // Si le joueur actuel est le créateur de la salle
-      else if (data.playerName === playerName) {
+      } else if (data.playerName === playerName) {
+        // Le joueur actuel est le créateur
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
-      }
-      // Si la salle est vide (aucun joueur défini)
-      else if (!data.playerName && !data.opponentName) {
+      } else if (!data.playerName && !data.opponentName) {
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -160,9 +161,7 @@ const Board: React.FC = () => {
         setOpponentName("");
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
-      }
-      // Si un adversaire rejoint (créateur présent, mais `opponentName` n'est pas défini)
-      else if (data.playerName && !data.opponentName && data.playerName !== playerName) {
+      } else if (data.playerName && !data.opponentName && data.playerName !== playerName) {
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -178,9 +177,7 @@ const Board: React.FC = () => {
         setOpponentName(playerName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
-      }
-      // Sinon, on reste en attente d'un adversaire
-      else {
+      } else {
         setOpponentName("");
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
@@ -193,6 +190,11 @@ const Board: React.FC = () => {
 
   const handleClick = async (index: number) => {
     if (squares[index] || winner || startingPlayer === null) return;
+
+    if (mode === "online") {
+      const isPlayerTurn = (isXNext && playerSymbol === "X") || (!isXNext && playerSymbol === "O");
+      if (!isPlayerTurn) return;
+    }
 
     const newSquares = squares.slice();
     newSquares[index] = isXNext ? playerSymbol : aiSymbol;
@@ -220,7 +222,6 @@ const Board: React.FC = () => {
             winner: currentWinner,
           }),
         });
-
         await refreshGameState();
       } catch (error) {
         console.error("Erreur lors de la mise à jour du jeu en ligne :", error);
@@ -501,11 +502,13 @@ const Board: React.FC = () => {
     if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
       (async () => {
         await refreshGameState();
-        setOpponentName("Adversaire");
+        const response = await fetch(`/api/game/${roomId}`);
+        const data = await response.json();
+        const opponent = data.opponentName;
+        setOpponentName(opponent || "Adversaire");
       })();
     }
   }, [mode, roomId, isRoomReady, playerName, refreshGameState]);
-
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Loading */}
@@ -559,7 +562,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Configuration des joueurs pour tous les modes */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady)) && !startingPlayer && !isWaitingForOpponent && (
+      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && !isWaitingForOpponent && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
           <input
@@ -578,38 +581,36 @@ const Board: React.FC = () => {
               onChange={(e) => setOpponentName(e.target.value)}
             />
           )}
-          {mode === "online" && opponentName.trim() === "" && (
-            <input
-              type="text"
-              placeholder="Nom de l'adversaire"
-              className="p-2 border border-gray-300 rounded-lg"
-              value={opponentName}
-              onChange={(e) => setOpponentName(e.target.value)}
-            />
-          )}
         </div>
       )}
 
       {/* Sélection du joueur qui commence */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId)) && !startingPlayer && playerName.trim() && !isWaitingForOpponent && (
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && !isWaitingForOpponent && isRoomCreator)) && !startingPlayer && playerName.trim() && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">
             <button
               className="px-6 py-3 bg-blue-500 text-white rounded-lg"
               onClick={() => initializeGame("player")}
+              disabled={mode === "online" && !isRoomCreator}
             >
               {playerName} commence (X)
             </button>
-            {(mode === "solo" || mode === "online") && (
+            {(mode === "solo" || (mode === "online" && isRoomCreator)) && (
               <button
                 className="px-6 py-3 bg-red-500 text-white rounded-lg"
                 onClick={() => initializeGame("ai")}
               >
-                IA commence (X)
+                {mode === "online" ? `${opponentName} commence (X)` : "IA commence (X)"}
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {mode === "online" && roomId && !isRoomCreator && isRoomReady && !startingPlayer && (
+        <div className="flex flex-col items-center gap-4">
+          <h2 className="text-2xl font-bold mb-4">En attente du créateur pour commencer la partie...</h2>
         </div>
       )}
 
