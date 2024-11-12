@@ -18,8 +18,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({error: "roomId is missing"}, {status: 400});
   }
 
+  console.log("Requête GET pour la salle :", roomId);
+
   const sql = "SELECT * FROM online_games WHERE room_id = $1";
   const result = await query(sql, [roomId]);
+
+  console.log("Résultat de la requête :", result.rows);
 
   if (result.rows.length > 0) {
     const gameState = result.rows[0];
@@ -33,7 +37,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Initialiser l'état du jeu si la salle n'existe pas
-  const initialState: GameState = {squares: Array(9).fill(null), isXNext: true};
+  const initialState: GameState = {
+    squares: Array(9).fill(null),
+    isXNext: true,
+    playerName: null,
+    opponentName: null,
+    winner: null,
+  };
   return NextResponse.json(initialState);
 }
 
