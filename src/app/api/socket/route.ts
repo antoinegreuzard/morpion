@@ -20,6 +20,11 @@ export async function GET(req: NextApiRequest) {
     io.on("connection", (socket) => {
       console.log(`Nouvelle connexion : ${socket.id}`);
 
+      socket.on("playerReady", (playerName) => {
+        console.log(`${playerName} est prêt.`);
+        socket.broadcast.emit("opponentReady", playerName);
+      });
+
       socket.on("joinRoom", (roomId) => {
         socket.join(roomId);
         io!.to(roomId).emit("roomReady");

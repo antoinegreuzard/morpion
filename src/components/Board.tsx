@@ -456,6 +456,12 @@ const Board: React.FC = () => {
       socket.on("error", handleError);
       socket.on("moveMade", handleMoveMade);
 
+      // Ajoute l'écouteur ici
+      socket.on("opponentReady", (opponentName: string) => {
+        setOpponentName(opponentName);
+        console.log(`Votre adversaire, ${opponentName}, est prêt.`);
+      });
+
       // Nettoyage des écouteurs
       return () => {
         socket.off("roomReady", handleRoomReady);
@@ -464,6 +470,21 @@ const Board: React.FC = () => {
       };
     }
   }, [socket, mode, roomId, playerSymbol]);
+
+  useEffect(() => {
+    if (mode === "online" && socket) {
+      const handleOpponentReady = (opponentName: string) => {
+        setOpponentName(opponentName);
+        console.log(`Votre adversaire, ${opponentName}, est prêt.`);
+      };
+
+      socket.on("opponentReady", handleOpponentReady);
+
+      return () => {
+        socket.off("opponentReady", handleOpponentReady);
+      };
+    }
+  }, [socket, mode]);
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -502,25 +523,32 @@ const Board: React.FC = () => {
       {/* Configuration des joueurs quand la salle est prête */}
       {mode === "online" && isRoomReady && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
-          <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
+          <h2 className="text-2xl font-bold mb-4">Entrez votre nom :</h2>
           <input
             type="text"
-            placeholder="Nom du joueur 1"
+            placeholder="Votre nom"
             className="mb-2 p-2 border border-gray-300 rounded-lg"
             value={playerName}
             onChange={(e) => setPlayerName(e.target.value)}
           />
           <button
             className="px-6 py-3 bg-blue-500 text-white rounded-lg"
-            onClick={() => initializeGame("player")}
+            onClick={() => {
+              if (playerName.trim()) {
+                socket?.emit("playerReady", playerName);
+                console.log(`Nom du joueur envoyé : ${playerName}`);
+              } else {
+                alert("Veuillez entrer un nom de joueur.");
+              }
+            }}
           >
-            {playerName} commence (X)
+            Commencer la partie
           </button>
         </div>
       )}
 
       {/* Champs pour les noms des joueurs */}
-      {mode && !startingPlayer && (
+      {mode && mode !== "online" && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
           <input
@@ -543,7 +571,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {mode && !startingPlayer && (
+      {mode && mode !== "online" && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">

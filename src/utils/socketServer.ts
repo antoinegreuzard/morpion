@@ -57,6 +57,11 @@ export const initializeSocket = (server: http.Server) => {
         }
       });
 
+      socket.on("playerReady", (playerName) => {
+        console.log(`Joueur prêt : ${playerName}`);
+        socket.broadcast.emit("opponentReady", playerName);
+      });
+
       socket.on("move", (roomId: string, moveData: MoveData) => {
         io!.to(roomId).emit("moveMade", moveData);
       });
