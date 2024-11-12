@@ -3,46 +3,50 @@ import {render, screen, fireEvent} from "@testing-library/react";
 import Square from "@/components/Square";
 
 describe("Square Component", () => {
-  it("doit afficher la valeur 'X' avec la classe correspondante", () => {
-    render(<Square value="X" onClick={() => {
-    }}/>);
-    const squareButton = screen.getByRole("button");
-    expect(squareButton).toHaveTextContent("X");
-    expect(squareButton).toHaveClass("text-blue-500");
-    expect(squareButton).toHaveClass("animate-pop");
+  const onClickMock = jest.fn();
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it("doit afficher la valeur 'O' avec la classe correspondante", () => {
-    render(<Square value="O" onClick={() => {
-    }}/>);
-    const squareButton = screen.getByRole("button");
-    expect(squareButton).toHaveTextContent("O");
-    expect(squareButton).toHaveClass("text-red-500");
-    expect(squareButton).toHaveClass("animate-pop");
+  it("should render the Square with no value", () => {
+    render(<Square value={null} onClick={onClickMock}/>);
+
+    const button = screen.getByRole("button");
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent("");
+    expect(button).toHaveClass("bg-white border-gray-300 hover:bg-gray-100");
   });
 
-  it("doit être vide lorsque la valeur est null", () => {
-    render(<Square value={null} onClick={() => {
-    }}/>);
-    const squareButton = screen.getByRole("button");
-    expect(squareButton).toBeEmptyDOMElement();
-    expect(squareButton).not.toHaveClass("text-blue-500");
-    expect(squareButton).not.toHaveClass("text-red-500");
+  it("should render the Square with an 'X' value", () => {
+    render(<Square value="X" onClick={onClickMock}/>);
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("X");
+    expect(button).toHaveClass("text-[var(--color-player)] bg-blue-100 border-blue-300 animate-pop");
   });
 
-  it("doit appeler la fonction onClick lorsqu'il est cliqué", () => {
-    const handleClick = jest.fn();
-    render(<Square value={null} onClick={handleClick}/>);
-    const squareButton = screen.getByRole("button");
+  it("should render the Square with an 'O' value", () => {
+    render(<Square value="O" onClick={onClickMock}/>);
 
-    fireEvent.click(squareButton);
-    expect(handleClick).toHaveBeenCalledTimes(1);
+    const button = screen.getByRole("button");
+    expect(button).toHaveTextContent("O");
+    expect(button).toHaveClass("text-[var(--color-ai)] bg-red-100 border-red-300 animate-pop");
   });
 
-  it("doit avoir la classe 'hover:scale-105' pour l'animation au survol", () => {
-    render(<Square value={null} onClick={() => {
-    }}/>);
-    const squareButton = screen.getByRole("button");
-    expect(squareButton).toHaveClass("hover:scale-105");
+  it("should call onClick when the Square is clicked", () => {
+    render(<Square value={null} onClick={onClickMock}/>);
+
+    const button = screen.getByRole("button");
+    fireEvent.click(button);
+
+    expect(onClickMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("should apply hover and transition effects when hovered and clicked", () => {
+    render(<Square value={null} onClick={onClickMock}/>);
+
+    const button = screen.getByRole("button");
+    expect(button).toHaveClass("hover:scale-105 transition-transform duration-300 ease-in-out transform");
   });
 });

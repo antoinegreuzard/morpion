@@ -21,18 +21,18 @@ const evaluateBoard = (board: (string | null)[], aiSymbol: "X" | "O", playerSymb
 
   // Prioriser le contrôle des coins
   for (const corner of corners) {
-    if (board[corner] === aiSymbol) score += 3;
-    if (board[corner] === playerSymbol) score -= 3;
+    if (board[corner] === aiSymbol) score += 5;
+    if (board[corner] === playerSymbol) score -= 5;
   }
 
   // Prioriser le centre
-  if (board[4] === aiSymbol) score += 5;
-  if (board[4] === playerSymbol) score -= 5;
+  if (board[4] === aiSymbol) score += 10;
+  if (board[4] === playerSymbol) score -= 10;
 
   // Prioriser les bords
   for (const edge of edges) {
-    if (board[edge] === aiSymbol) score += 1;
-    if (board[edge] === playerSymbol) score -= 1;
+    if (board[edge] === aiSymbol) score += 2;
+    if (board[edge] === playerSymbol) score -= 2;
   }
 
   // Défense contre les forks
@@ -109,6 +109,13 @@ const findFork = (board: (string | null)[], symbol: "X" | "O"): number | null =>
 };
 
 /**
+ * Génère des formes symétriques du board pour optimiser le cache.
+ */
+const getSymmetryKeys = (board: (string | null)[]): string[] => {
+  return [getCanonicalForm(board)]; // Ajoutez d'autres formes symétriques si nécessaire.
+};
+
+/**
  * Fonction minimax optimisée avec Alpha-Beta Pruning et défense améliorée.
  */
 export const minimax = (
@@ -123,10 +130,9 @@ export const minimax = (
 ): number => {
   if (depth === 0) resetMemo();
 
-  const canonicalForm = getCanonicalForm(board);
-
-  if (memo.has(canonicalForm)) {
-    return memo.get(canonicalForm)!;
+  const canonicalForms = getSymmetryKeys(board);
+  for (const form of canonicalForms) {
+    if (memo.has(form)) return memo.get(form)!;
   }
 
   const winner = checkWinner(board);
@@ -139,47 +145,36 @@ export const minimax = (
     return evaluateBoard(board, aiSymbol, playerSymbol);
   }
 
-  // Priorité de défense : bloquer le coup gagnant de l'adversaire
   const criticalMove = findCriticalMove(board, playerSymbol);
   if (criticalMove !== null && isMaximizing) {
-    // Si l'adversaire a un coup gagnant, l'IA bloque ce coup immédiatement
     board[criticalMove] = aiSymbol;
     const score = minimax(board, depth + 1, false, alpha, beta, aiSymbol, playerSymbol, maxDepth);
     board[criticalMove] = null;
     return score;
   }
 
-  if (isMaximizing) {
-    let bestScore = -Infinity;
-    for (let i = 0; i < board.length; i++) {
-      if (board[i] === null) {
-        board[i] = aiSymbol;
-        const score = minimax(board, depth + 1, false, alpha, beta, aiSymbol, playerSymbol, maxDepth);
-        board[i] = null;
-        bestScore = Math.max(score, bestScore);
+  let bestScore = isMaximizing ? -Infinity : Infinity;
+  for (let i = 0; i < board.length; i++) {
+    if (board[i] === null) {
+      board[i] = isMaximizing ? aiSymbol : playerSymbol;
+      const score = minimax(board, depth + 1, !isMaximizing, alpha, beta, aiSymbol, playerSymbol, maxDepth);
+      board[i] = null;
+      bestScore = isMaximizing ? Math.max(score, bestScore) : Math.min(score, bestScore);
+
+      if (isMaximizing) {
         alpha = Math.max(alpha, score);
-
-        if (beta <= alpha) break;
-      }
-    }
-    memo.set(canonicalForm, bestScore);
-    return bestScore;
-  } else {
-    let bestScore = Infinity;
-    for (let i = 0; i < board.length; i++) {
-      if (board[i] === null) {
-        board[i] = playerSymbol;
-        const score = minimax(board, depth + 1, true, alpha, beta, aiSymbol, playerSymbol, maxDepth);
-        board[i] = null;
-        bestScore = Math.min(score, bestScore);
+      } else {
         beta = Math.min(beta, score);
-
-        if (beta <= alpha) break;
       }
+      if (beta <= alpha) break;
     }
-    memo.set(canonicalForm, bestScore);
-    return bestScore;
   }
+
+  for (const form of canonicalForms) {
+    memo.set(form, bestScore);
+  }
+
+  return bestScore;
 };
 
 /**
