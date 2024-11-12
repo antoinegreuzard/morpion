@@ -18,12 +18,12 @@ const OnlineGameSetup: React.FC<OnlineGameSetupProps> = ({onJoinRoom}) => {
 
   // Fonction pour rejoindre une salle existante
   const handleJoinRoom = () => {
-    if (roomId.trim() === "") {
+    if (!roomId || roomId.trim() === "") {
       alert("Veuillez entrer un ID de salle valide.");
       return;
     }
     onJoinRoom(roomId);
-  };
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 mb-6">
