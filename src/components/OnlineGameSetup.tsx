@@ -24,14 +24,37 @@ const OnlineGameSetup: React.FC<OnlineGameSetupProps> = ({onJoinRoom}) => {
   };
 
   // Fonction pour rejoindre une salle existante
-  const handleJoinRoom = () => {
+  // Fonction pour rejoindre une salle existante
+  const handleJoinRoom = async () => {
     if (!roomId.trim() || !playerName.trim()) {
       setErrorMessage("Veuillez entrer un ID de salle et votre nom.");
       return;
     }
+
+    // Vérifier si la salle existe
+    const roomExists = await checkRoomExists(roomId.trim());
+    if (!roomExists) {
+      setErrorMessage("La salle n'existe pas. Veuillez vérifier l'ID de la salle.");
+      return;
+    }
+
     onJoinRoom(roomId.trim(), playerName);
     setErrorMessage(null);
     setRoomId("");
+  };
+
+  const checkRoomExists = async (roomId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/game/${roomId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data && data.roomId === roomId;
+      }
+      return false;
+    } catch (error) {
+      console.error("Erreur lors de la vérification de la salle :", error);
+      return false;
+    }
   };
 
   return (
