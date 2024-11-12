@@ -8,7 +8,9 @@ import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
-import io from "socket.io-client";
+import {io, Socket} from "socket.io-client";
+import OnlineGameSetup from "@/components/OnlineGameSetup";
+import {MoveData} from "@/utils/socketServer";
 
 const Board: React.FC = () => {
   const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
@@ -31,7 +33,9 @@ const Board: React.FC = () => {
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [socket, setSocket] = useState<any>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [isRoomReady, setIsRoomReady] = useState(false);
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -52,7 +56,7 @@ const Board: React.FC = () => {
     }
 
     if (mode === "online" && socket) {
-      socket.emit("startGame", startingPlayer);
+      socket.emit("startGame", firstPlayer);
     }
 
     // Mettre à jour le leaderboard et les statistiques
@@ -96,6 +100,32 @@ const Board: React.FC = () => {
     }
   }, []);
 
+  const joinRoom = (roomId: string) => {
+    setRoomId(roomId);
+
+    if (mode === "online" && socket) {
+      socket.emit("joinRoom", roomId);
+
+      // Écouter quand la salle est prête
+      socket.on("roomReady", () => {
+        setIsRoomReady(true);
+        console.log(`Salle ${roomId} est prête.`);
+      });
+
+      // Gérer l'erreur si la salle est pleine
+      socket.on("error", (message: string) => {
+        alert(message);
+        setRoomId(null);
+        setIsRoomReady(false);
+      });
+
+      // Écouter l'événement de début de partie
+      socket.on("startGame", (firstPlayer: "player" | "ai") => {
+        initializeGame(firstPlayer);
+      });
+    }
+  };
+
   const handleClick = (index: number) => {
     if (squares[index] || winner || startingPlayer === null) return;
 
@@ -105,8 +135,8 @@ const Board: React.FC = () => {
 
     setIsXNext(mode !== "solo" ? !isXNext : false);
 
-    if (mode === "online" && socket) {
-      socket.emit("move", "defaultRoom", {index, symbol});
+    if (mode === "online" && socket && roomId) {
+      socket.emit("move", roomId, {index, symbol: isXNext ? playerSymbol : aiSymbol});
     }
   };
 
@@ -321,7 +351,7 @@ const Board: React.FC = () => {
   }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
   useEffect(() => {
-    if (mode === "online" && !socket) {
+    if (mode === "online" && (!socket || !socket.connected)) {
       const newSocket = io("http://localhost:3000");
       setSocket(newSocket);
 
@@ -329,14 +359,20 @@ const Board: React.FC = () => {
       const roomId = prompt("Entrez l'ID de la salle ou laissez vide pour en créer une nouvelle :") || `room-${Date.now()}`;
 
       // Rejoindre la salle
-      newSocket.emit("joinRoom", roomId);
+      if (mode === "online" && socket) {
+        socket.emit("joinRoom", roomId);
+      }
 
       // Écouter les mouvements de l'autre joueur
       newSocket.on("moveMade", (moveData: any) => {
         const {index, symbol} = moveData;
         const newSquares = squares.slice();
         newSquares[index] = symbol;
-        setSquares(newSquares);
+        setSquares((prevSquares) => {
+          const newSquares = prevSquares.slice();
+          newSquares[index] = symbol;
+          return newSquares;
+        });
         setIsXNext(symbol !== playerSymbol);
       });
 
@@ -365,8 +401,58 @@ const Board: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    // Nettoyage lors du démontage du composant
+    return () => {
+      if (socket) {
+        socket.disconnect();
+        console.log("Socket déconnecté proprement lors du démontage du composant.");
+      }
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    if (mode === "online" && socket) {
+      // Écouter les événements uniquement si le socket est initialisé
+      socket.on("roomReady", () => {
+        setIsRoomReady(true);
+        console.log(`Salle ${roomId} est prête.`);
+      });
+
+      socket.on("error", (message: string) => {
+        alert(message);
+        setRoomId(null);
+        setIsRoomReady(false);
+      });
+
+      socket.on("startGame", (firstPlayer: "player" | "ai") => {
+        initializeGame(firstPlayer);
+      });
+
+      socket.on("moveMade", (moveData: MoveData) => {
+        const {index, symbol} = moveData;
+        setSquares((prevSquares) => {
+          const newSquares = prevSquares.slice();
+          newSquares[index] = symbol;
+          return newSquares;
+        });
+        setIsXNext(symbol !== playerSymbol);
+      });
+
+      // Nettoyage des événements lors du démontage du composant
+      return () => {
+        socket.off("roomReady");
+        socket.off("error");
+        socket.off("startGame");
+        socket.off("moveMade");
+        console.log("Écouteurs d'événements Socket.IO nettoyés.");
+      };
+    }
+  }, [socket, mode, roomId, playerSymbol]);
+
   return (
     <div className="flex flex-col items-center gap-8">
+      {/* Sélection du mode de jeu */}
       {/* Sélection du mode de jeu */}
       {!mode && (
         <div className="flex flex-col items-center mb-6">
@@ -391,6 +477,31 @@ const Board: React.FC = () => {
               Multijoueur Online
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Configuration du jeu online */}
+      {mode === "online" && !isRoomReady && (
+        <OnlineGameSetup onJoinRoom={joinRoom}/>
+      )}
+
+      {/* Configuration des joueurs quand la salle est prête */}
+      {mode === "online" && isRoomReady && !startingPlayer && (
+        <div className="flex flex-col items-center mb-6">
+          <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
+          <input
+            type="text"
+            placeholder="Nom du joueur 1"
+            className="mb-2 p-2 border border-gray-300 rounded-lg"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+          <button
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg"
+            onClick={() => initializeGame("player")}
+          >
+            {playerName} commence (X)
+          </button>
         </div>
       )}
 
