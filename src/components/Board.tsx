@@ -123,8 +123,9 @@ const Board: React.FC = () => {
     }
   }, []);
 
-  const joinRoom = (roomId: string) => {
+  const joinRoom = (roomId: string, playerName: string) => {
     setRoomId(roomId);
+    setPlayerName(playerName);
     setIsRoomReady(true);
   };
 
@@ -416,10 +417,10 @@ const Board: React.FC = () => {
   }, [mode, gameState]);
 
   useEffect(() => {
-    if (mode === "online" && roomId && gameState) {
-      setOpponentName(gameState.opponentName || "Adversaire");
+    if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
+      setOpponentName("Adversaire");
     }
-  }, [mode, roomId, gameState]);
+  }, [mode, roomId, isRoomReady, playerName]);
 
   return (
     <div className="flex flex-col items-center gap-8">
