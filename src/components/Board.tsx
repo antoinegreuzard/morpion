@@ -83,8 +83,8 @@ const Board: React.FC = () => {
     }
 
     // Mettre à jour le leaderboard et les statistiques
-    fetchLeaderboard();
-    fetchStats();
+    await fetchLeaderboard();
+    await fetchStats();
   };
 
   const fetchLeaderboard = useCallback(async () => {
