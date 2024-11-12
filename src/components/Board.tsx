@@ -464,7 +464,7 @@ const Board: React.FC = () => {
             type="text"
             placeholder="Nom du joueur 1"
             className="mb-2 p-2 border border-gray-300 rounded-lg"
-            value={playerName}
+            value={playerName || "Nom du joueur"}
             onChange={(e) => setPlayerName(e.target.value)}
           />
           {mode === "multiplayer" && (
