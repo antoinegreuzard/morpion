@@ -46,11 +46,8 @@ const OnlineGameSetup: React.FC<OnlineGameSetupProps> = ({onJoinRoom}) => {
   const checkRoomExists = async (roomId: string): Promise<boolean> => {
     try {
       const response = await fetch(`/api/game/${roomId}`);
-      if (response.ok) {
-        const data = await response.json();
-        return data && data.roomId === roomId;
-      }
-      return false;
+      // Si le statut est 200, considère que la salle existe
+      return response.ok;
     } catch (error) {
       console.error("Erreur lors de la vérification de la salle :", error);
       return false;
