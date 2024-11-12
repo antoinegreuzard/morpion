@@ -125,32 +125,31 @@ const Board: React.FC = () => {
     }
   }, []);
 
-  const joinRoom = async (roomId: string, playerName: string, creator: boolean = false) => {
+  const joinRoom = async (roomId: string, playerName: string) => {
     setRoomId(roomId);
     setPlayerName(playerName);
-    setIsCreator(creator);
 
     try {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
-      // Si un joueur est déjà présent
-      if (data.playerName && data.playerName !== playerName) {
-        setOpponentName(data.playerName);
-        setIsRoomReady(true);
-        setIsWaitingForOpponent(false);
-      } else if (data.opponentName && data.opponentName !== playerName) {
+      // Déterminer si un joueur est déjà présent dans la salle
+      if (data.opponentName && data.opponentName !== playerName) {
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
+      } else if (data.playerName && data.playerName !== playerName) {
+        setOpponentName(data.playerName);
+        setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
       } else {
-        // Sinon, nous devons attendre que l'autre joueur rejoigne
+        // Sinon, le joueur attend l'arrivée de l'adversaire
         setIsRoomReady(false);
-        setIsWaitingForOpponent(creator);
+        setIsWaitingForOpponent(true);
       }
     } catch (error) {
       console.error("Erreur lors de la vérification de l'adversaire :", error);
-      setIsWaitingForOpponent(creator);
+      setIsWaitingForOpponent(true);
     }
   };
 
@@ -404,7 +403,7 @@ const Board: React.FC = () => {
   }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
 
   useEffect(() => {
-    if (mode === "online" && roomId) {
+    if (mode === "online" && roomId && isWaitingForOpponent) {
       const checkOpponentJoined = async () => {
         try {
           const response = await fetch(`/api/game/${roomId}`);
@@ -429,7 +428,7 @@ const Board: React.FC = () => {
       const intervalId = setInterval(checkOpponentJoined, 2000);
       return () => clearInterval(intervalId);
     }
-  }, [mode, roomId, playerName]);
+  }, [mode, roomId, isWaitingForOpponent, playerName]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -624,7 +623,7 @@ const Board: React.FC = () => {
           </div>
         </div>
       )}
-      
+
       {/* Bouton Rejouer */}
       {winner && (
         <button
