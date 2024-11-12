@@ -129,11 +129,13 @@ const Board: React.FC = () => {
   const handleClick = (index: number) => {
     if (squares[index] || winner || startingPlayer === null) return;
 
-    const newSquares = squares.slice();
-    newSquares[index] = isXNext ? playerSymbol : aiSymbol;
-    setSquares(newSquares);
+    setSquares((prevSquares) => {
+      const newSquares = prevSquares.slice();
+      newSquares[index] = isXNext ? playerSymbol : aiSymbol;
+      return newSquares;
+    });
 
-    setIsXNext(mode !== "solo" ? !isXNext : false);
+    setIsXNext((prevIsXNext) => (mode !== "solo" ? !prevIsXNext : false));
 
     if (mode === "online" && socket && roomId) {
       socket.emit("move", roomId, {index, symbol: isXNext ? playerSymbol : aiSymbol});
@@ -313,7 +315,7 @@ const Board: React.FC = () => {
     } else if (mode === "multiplayer" && opponentName.trim() === "") {
       setOpponentName("Joueur 2");
     }
-  }, [mode, opponentName]);
+  }, [mode]);
 
   useEffect(() => {
     const currentWinner = checkWinner(squares);
@@ -352,7 +354,8 @@ const Board: React.FC = () => {
 
   useEffect(() => {
     if (mode === "online" && (!socket || !socket.connected)) {
-      const newSocket = io("http://localhost:3000");
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_SERVER_URL || window.location.origin;
+      const newSocket = io(socketUrl);
       setSocket(newSocket);
 
       // Générer un roomId unique ou demander à l'utilisateur
@@ -364,10 +367,8 @@ const Board: React.FC = () => {
       }
 
       // Écouter les mouvements de l'autre joueur
-      newSocket.on("moveMade", (moveData: any) => {
+      newSocket.on("moveMade", (moveData: MoveData) => {
         const {index, symbol} = moveData;
-        const newSquares = squares.slice();
-        newSquares[index] = symbol;
         setSquares((prevSquares) => {
           const newSquares = prevSquares.slice();
           newSquares[index] = symbol;
@@ -415,8 +416,10 @@ const Board: React.FC = () => {
     if (mode === "online" && socket) {
       // Écouter les événements uniquement si le socket est initialisé
       socket.on("roomReady", () => {
-        setIsRoomReady(true);
-        console.log(`Salle ${roomId} est prête.`);
+        if (roomId) {
+          setIsRoomReady(true);
+          console.log(`Salle ${roomId} est prête.`);
+        }
       });
 
       socket.on("error", (message: string) => {
