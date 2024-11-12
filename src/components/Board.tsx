@@ -134,15 +134,19 @@ const Board: React.FC = () => {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
-      // Si l'adversaire est déjà présent dans la salle
-      if (data.opponentName && data.opponentName !== playerName) {
+      // Si un joueur est déjà présent
+      if (data.playerName && data.playerName !== playerName) {
+        setOpponentName(data.playerName);
+        setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
+      } else if (data.opponentName && data.opponentName !== playerName) {
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
       } else {
-        setOpponentName("");
+        // Sinon, nous devons attendre que l'autre joueur rejoigne
         setIsRoomReady(false);
-        setIsWaitingForOpponent(creator); // Activer l'attente seulement si c'est le créateur
+        setIsWaitingForOpponent(creator);
       }
     } catch (error) {
       console.error("Erreur lors de la vérification de l'adversaire :", error);
@@ -400,15 +404,19 @@ const Board: React.FC = () => {
   }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
 
   useEffect(() => {
-    if (mode === "online" && roomId && isWaitingForOpponent && !isCreator) {
+    if (mode === "online" && roomId) {
       const checkOpponentJoined = async () => {
         try {
           const response = await fetch(`/api/game/${roomId}`);
           const data = await response.json();
 
-          // Vérifiez si l'adversaire a rejoint
+          // Si l'adversaire est détecté
           if (data.opponentName && data.opponentName !== playerName) {
             setOpponentName(data.opponentName);
+            setIsRoomReady(true);
+            setIsWaitingForOpponent(false);
+          } else if (data.playerName && data.playerName !== playerName) {
+            setOpponentName(data.playerName);
             setIsRoomReady(true);
             setIsWaitingForOpponent(false);
           }
@@ -421,7 +429,7 @@ const Board: React.FC = () => {
       const intervalId = setInterval(checkOpponentJoined, 2000);
       return () => clearInterval(intervalId);
     }
-  }, [mode, roomId, isWaitingForOpponent, isCreator, playerName]);
+  }, [mode, roomId, playerName]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -604,7 +612,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Plateau de jeu */}
-      {startingPlayer && (mode !== "online" || (mode === "online" && isRoomReady)) && (
+      {startingPlayer && (mode !== "online" || isRoomReady) && (
         <div className="flex flex-col items-center gap-4">
           <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
             {winner ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}` : `Prochain coup : ${isXNext ? playerName : opponentName}`}
@@ -616,7 +624,7 @@ const Board: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       {/* Bouton Rejouer */}
       {winner && (
         <button
