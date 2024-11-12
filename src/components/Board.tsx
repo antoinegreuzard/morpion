@@ -9,6 +9,9 @@ import {checkWinner} from "@/utils/checkWinner";
 import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
 import OnlineGameSetup from "@/components/OnlineGameSetup";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const Board: React.FC = () => {
   const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
@@ -33,6 +36,12 @@ const Board: React.FC = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
+
+  const {data: gameState, mutate: refreshGameState} = useSWR(
+    roomId ? `/api/game/${roomId}` : null,
+    fetcher,
+    {refreshInterval: 1000}
+  );
 
   // Initialiser le jeu
   const initializeGame = (firstPlayer: "player" | "ai") => {
@@ -95,18 +104,40 @@ const Board: React.FC = () => {
 
   const joinRoom = (roomId: string) => {
     setRoomId(roomId);
+    setIsRoomReady(true);
   };
 
-  const handleClick = (index: number) => {
+  const handleClick = async (index: number) => {
     if (squares[index] || winner || startingPlayer === null) return;
 
-    setSquares((prevSquares) => {
-      const newSquares = prevSquares.slice();
-      newSquares[index] = isXNext ? playerSymbol : aiSymbol;
-      return newSquares;
-    });
+    const newSquares = squares.slice();
+    newSquares[index] = isXNext ? playerSymbol : aiSymbol;
+    const nextIsX = !isXNext;
+    const currentWinner = checkWinner(newSquares);
 
-    setIsXNext((prevIsXNext) => (mode !== "solo" ? !prevIsXNext : false));
+    // Mise à jour locale
+    setSquares(newSquares);
+    setIsXNext(nextIsX);
+
+    // Si mode online, mettre à jour l'API
+    if (mode === "online" && roomId) {
+      try {
+        await fetch(`/api/game/${roomId}`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            squares: newSquares,
+            isXNext: nextIsX,
+            winner: currentWinner,
+          }),
+        });
+
+        // Rafraîchir l'état du jeu via SWR
+        await refreshGameState();
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour du jeu en ligne :", error);
+      }
+    }
   };
 
   // Fonction pour que l'IA joue son coup
@@ -320,45 +351,35 @@ const Board: React.FC = () => {
   }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
   // Réinitialiser le jeu
-  const resetGame = () => {
+  const resetGame = async () => {
     initializeGame(nextStartingPlayer);
+
+    if (mode === "online" && roomId) {
+      try {
+        await fetch(`/api/game/${roomId}`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            squares: Array(9).fill(null),
+            isXNext: nextStartingPlayer === "player",
+            winner: null,
+          }),
+        });
+
+        await refreshGameState();
+      } catch (error) {
+        console.error("Erreur lors de la réinitialisation du jeu en ligne :", error);
+      }
+    }
   };
 
   useEffect(() => {
-    if (mode === "online") {
-      const handleRoomReady = () => {
-        if (roomId) {
-          setIsRoomReady(true);
-          console.log(`Salle ${roomId} est prête.`);
-        }
-      };
-
-      const handleError = (message: string) => {
-        alert(message);
-        setRoomId(null);
-        setIsRoomReady(false);
-      };
-
-      const handleMoveMade = (moveData: any) => {
-        const {index, symbol} = moveData;
-        setSquares((prevSquares) => {
-          const newSquares = prevSquares.slice();
-          newSquares[index] = symbol;
-          return newSquares;
-        });
-        setIsXNext(symbol !== playerSymbol);
-      };
+    if (mode === "online" && gameState) {
+      setSquares(gameState.squares);
+      setIsXNext(gameState.isXNext);
+      setWinner(gameState.winner);
     }
-  }, [mode, roomId, playerSymbol]);
-
-  useEffect(() => {
-    if (mode === "online") {
-      const handleOpponentReady = (opponentName: string) => {
-        setOpponentName(opponentName);
-        console.log(`Votre adversaire, ${opponentName}, est prêt.`);
-      };
-    }
-  }, [mode]);
+  }, [mode, gameState]);
 
   return (
     <div className="flex flex-col items-center gap-8">
