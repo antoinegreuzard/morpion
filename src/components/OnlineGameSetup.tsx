@@ -13,27 +13,25 @@ const OnlineGameSetup: React.FC<OnlineGameSetupProps> = ({onJoinRoom}) => {
 
   // Fonction pour créer une nouvelle salle
   const handleCreateRoom = () => {
-    const newRoomId = `room-${Date.now()}`;
     if (!playerName.trim()) {
-      setErrorMessage("Veuillez entrer un nom de joueur valide.");
+      setErrorMessage("Veuillez entrer votre nom.");
       return;
     }
-    onJoinRoom(newRoomId, playerName.trim());
+    const newRoomId = `room-${Date.now()}`;
+    onJoinRoom(newRoomId, playerName);
     setErrorMessage(null);
     setRoomId("");
-    setPlayerName("");
   };
 
   // Fonction pour rejoindre une salle existante
   const handleJoinRoom = () => {
     if (!roomId.trim() || !playerName.trim()) {
-      setErrorMessage("Veuillez entrer un ID de salle et un nom de joueur valides.");
+      setErrorMessage("Veuillez entrer un ID de salle et votre nom.");
       return;
     }
-    onJoinRoom(roomId.trim(), playerName.trim());
+    onJoinRoom(roomId.trim(), playerName);
     setErrorMessage(null);
     setRoomId("");
-    setPlayerName("");
   };
 
   return (
