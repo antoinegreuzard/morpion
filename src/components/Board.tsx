@@ -37,7 +37,6 @@ const Board: React.FC = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
-  const [isRoomCreator, setIsRoomCreator] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -132,9 +131,6 @@ const Board: React.FC = () => {
     try {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
-
-      // Déterminer si le joueur est le créateur de la salle
-      setIsRoomCreator(data.playerName === playerName);
 
       // Si `opponentName` est défini et différent du joueur actuel, l'adversaire est présent
       if (data.opponentName && data.opponentName !== playerName) {
@@ -467,7 +463,7 @@ const Board: React.FC = () => {
 
   // Réinitialiser le jeu
   const resetGame = async () => {
-    initializeGame(nextStartingPlayer);
+    await initializeGame(nextStartingPlayer);
 
     if (mode === "online" && roomId) {
       try {
@@ -585,34 +581,34 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && !isWaitingForOpponent && isRoomCreator)) && !startingPlayer && playerName.trim() && (
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady && !isWaitingForOpponent)) && !startingPlayer && playerName.trim() && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">
             <button
               className="px-6 py-3 bg-blue-500 text-white rounded-lg"
               onClick={() => initializeGame("player")}
-              disabled={mode === "online" && !isRoomCreator}
+              disabled={mode === "online"}
             >
               {playerName} commence (X)
             </button>
-            {(mode === "solo" || (mode === "online" && isRoomCreator)) && (
-              <button
-                className="px-6 py-3 bg-red-500 text-white rounded-lg"
-                onClick={() => initializeGame("ai")}
-              >
-                {mode === "online" ? `${opponentName} commence (X)` : "IA commence (X)"}
-              </button>
-            )}
+            <button
+              className="px-6 py-3 bg-red-500 text-white rounded-lg"
+              onClick={() => initializeGame("ai")}
+            >
+              {mode === "online" ? `${opponentName} commence (X)` : "IA commence (X)"}
+            </button>
           </div>
         </div>
       )}
 
-      {mode === "online" && roomId && !isRoomCreator && isRoomReady && !startingPlayer && (
+      {/* Message pour l'adversaire en attente */}
+      {mode === "online" && roomId && isRoomReady && !startingPlayer && !isWaitingForOpponent && (
         <div className="flex flex-col items-center gap-4">
           <h2 className="text-2xl font-bold mb-4">En attente du créateur pour commencer la partie...</h2>
         </div>
       )}
+
 
       {/* Contrôles et tableau de bord */}
       {startingPlayer && (
