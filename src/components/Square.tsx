@@ -8,9 +8,11 @@ interface SquareProps {
 const Square: React.FC<SquareProps> = ({value, onClick}) => {
   return (
     <button
-      className={`w-20 h-20 text-2xl font-bold flex items-center justify-center bg-white shadow-md
+      className={`w-24 h-24 text-4xl font-extrabold flex items-center justify-center rounded-lg shadow-lg
                   transition-transform duration-300 ease-in-out transform hover:scale-105
-                  ${value === "X" ? "text-blue-500 animate-pop" : value === "O" ? "text-red-500 animate-pop" : ""}`}
+                  ${value === "X" ? "text-[var(--color-player)] bg-blue-100 border-blue-300 animate-pop" : ""}
+                  ${value === "O" ? "text-[var(--color-ai)] bg-red-100 border-red-300 animate-pop" : ""}
+                  ${!value ? "bg-white border-gray-300 hover:bg-gray-100" : ""}`}
       onClick={onClick}
     >
       {value}
