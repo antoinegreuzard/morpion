@@ -124,11 +124,27 @@ const Board: React.FC = () => {
     }
   }, []);
 
-  const joinRoom = (roomId: string, playerName: string) => {
+  const joinRoom = async (roomId: string, playerName: string) => {
     setRoomId(roomId);
     setPlayerName(playerName);
-    setIsRoomReady(true);
-    setIsWaitingForOpponent(true);
+
+    // Vérifiez si l'adversaire est déjà présent dans la salle
+    try {
+      const response = await fetch(`/api/game/${roomId}`);
+      const data = await response.json();
+
+      if (data.opponentName && data.opponentName !== playerName) {
+        setOpponentName(data.opponentName);
+        setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
+      } else {
+        setIsRoomReady(false);
+        setIsWaitingForOpponent(true);
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de l'adversaire :", error);
+      setIsWaitingForOpponent(true);
+    }
   };
 
   const handleClick = async (index: number) => {
@@ -387,6 +403,7 @@ const Board: React.FC = () => {
           const response = await fetch(`/api/game/${roomId}`);
           const data = await response.json();
 
+          // Vérifiez si l'adversaire a rejoint la salle
           if (data.opponentName && data.opponentName !== playerName) {
             setOpponentName(data.opponentName);
             setIsRoomReady(true);
@@ -399,8 +416,6 @@ const Board: React.FC = () => {
       };
 
       const intervalId = setInterval(checkOpponentJoined, 2000);
-
-      // Nettoyage de l'intervalle lorsque l'adversaire rejoint ou que l'écran change
       return () => clearInterval(intervalId);
     }
   }, [mode, roomId, isWaitingForOpponent, playerName]);
@@ -586,7 +601,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Plateau de jeu */}
-      {startingPlayer && (
+      {startingPlayer && (mode !== "online" || isRoomReady) && (
         <div className="flex flex-col items-center gap-4">
           <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
             {winner ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}` : `Prochain coup : ${isXNext ? playerName : opponentName}`}
