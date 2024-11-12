@@ -132,25 +132,19 @@ const Board: React.FC = () => {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
-      console.log("Données de la salle :", data);
-
       // Si `opponentName` est défini et différent du joueur actuel, l'adversaire est présent
       if (data.opponentName && data.opponentName !== playerName) {
-        console.log("Adversaire détecté :", data.opponentName);
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
       }
       // Si le joueur actuel est le créateur de la salle
       else if (data.playerName === playerName) {
-        console.log("Le joueur actuel est le créateur de la salle :", playerName);
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
       }
       // Si la salle est vide (aucun joueur défini)
       else if (!data.playerName && !data.opponentName) {
-        console.log("Salle vide, enregistrement du créateur :", playerName);
-
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -169,8 +163,6 @@ const Board: React.FC = () => {
       }
       // Si un adversaire rejoint (créateur présent, mais `opponentName` n'est pas défini)
       else if (data.playerName && !data.opponentName && data.playerName !== playerName) {
-        console.log("Rejoint en tant qu'opposant :", playerName);
-
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -189,7 +181,6 @@ const Board: React.FC = () => {
       }
       // Sinon, on reste en attente d'un adversaire
       else {
-        console.log("En attente d'un adversaire...");
         setOpponentName("");
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
@@ -453,20 +444,14 @@ const Board: React.FC = () => {
     if (mode === "online" && roomId && isWaitingForOpponent) {
       const checkOpponentJoined = async () => {
         try {
-          console.log("Vérification de l'adversaire...");
           const response = await fetch(`/api/game/${roomId}`);
           const data = await response.json();
 
-          console.log("Données de la salle :", data);
-
           // Si l'adversaire (`opponentName`) est présent et différent du joueur actuel
           if (data.opponentName && data.opponentName !== playerName) {
-            console.log("Adversaire détecté :", data.opponentName);
             setOpponentName(data.opponentName);
             setIsRoomReady(true);
             setIsWaitingForOpponent(false);
-          } else {
-            console.log("Pas encore d'adversaire.");
           }
         } catch (error) {
           console.error("Erreur lors de la vérification de l'adversaire :", error);
@@ -514,7 +499,6 @@ const Board: React.FC = () => {
 
   useEffect(() => {
     if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
-      console.log("Forçage de la synchronisation après détection de l'adversaire.");
       (async () => {
         await refreshGameState();
         setOpponentName("Adversaire");
