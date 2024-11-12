@@ -8,9 +8,7 @@ import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
 import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
-import {io, Socket} from "socket.io-client";
 import OnlineGameSetup from "@/components/OnlineGameSetup";
-import {MoveData} from "@/utils/socketServer";
 
 const Board: React.FC = () => {
   const [squares, setSquares] = useState<("X" | "O" | null)[]>(Array(9).fill(null));
@@ -33,7 +31,6 @@ const Board: React.FC = () => {
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
 
@@ -53,10 +50,6 @@ const Board: React.FC = () => {
     } else {
       setPlayerSymbol("O");
       setAiSymbol("X");
-    }
-
-    if (mode === "online" && socket) {
-      socket.emit("startGame", firstPlayer);
     }
 
     // Mettre à jour le leaderboard et les statistiques
@@ -102,28 +95,6 @@ const Board: React.FC = () => {
 
   const joinRoom = (roomId: string) => {
     setRoomId(roomId);
-
-    if (mode === "online" && socket) {
-      socket.emit("joinRoom", roomId);
-
-      // Écouter quand la salle est prête
-      socket.on("roomReady", () => {
-        setIsRoomReady(true);
-        console.log(`Salle ${roomId} est prête.`);
-      });
-
-      // Gérer l'erreur si la salle est pleine
-      socket.on("error", (message: string) => {
-        alert(message);
-        setRoomId(null);
-        setIsRoomReady(false);
-      });
-
-      // Écouter l'événement de début de partie
-      socket.on("startGame", (firstPlayer: "player" | "ai") => {
-        initializeGame(firstPlayer);
-      });
-    }
   };
 
   const handleClick = (index: number) => {
@@ -136,10 +107,6 @@ const Board: React.FC = () => {
     });
 
     setIsXNext((prevIsXNext) => (mode !== "solo" ? !prevIsXNext : false));
-
-    if (mode === "online" && socket && roomId) {
-      socket.emit("move", roomId, {index, symbol: isXNext ? playerSymbol : aiSymbol});
-    }
   };
 
   // Fonction pour que l'IA joue son coup
@@ -318,13 +285,6 @@ const Board: React.FC = () => {
   }, [mode, opponentName]);
 
   useEffect(() => {
-    if (mode === "online" && socket && !socket.connected) {
-      console.log("Tentative de connexion à Socket.IO...");
-      socket.connect();
-    }
-  }, [mode, socket]);
-
-  useEffect(() => {
     const currentWinner = checkWinner(squares);
     if (currentWinner && !scoreUpdated) {
       setWinner(currentWinner);
@@ -359,76 +319,13 @@ const Board: React.FC = () => {
     fetchStats();
   }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
-  useEffect(() => {
-    if (mode === "online" && !socket) {
-      const socketUrl = `${window.location.origin}/api/socket`;
-      const newSocket = io(socketUrl, {path: "/api/socket"});
-      setSocket(newSocket);
-
-      // Rejoindre la salle si un `roomId` est défini
-      if (roomId) {
-        newSocket.emit("joinRoom", roomId);
-      }
-
-      // Écouter les événements
-      newSocket.on("moveMade", (moveData: MoveData) => {
-        const {index, symbol} = moveData;
-        setSquares((prevSquares) => {
-          const newSquares = prevSquares.slice();
-          newSquares[index] = symbol;
-          return newSquares;
-        });
-        setIsXNext(symbol !== playerSymbol);
-      });
-
-      newSocket.on("startGame", (firstPlayer: "player" | "ai") => {
-        initializeGame(firstPlayer);
-      });
-
-      newSocket.on("resetGame", () => {
-        initializeGame(nextStartingPlayer);
-      });
-
-      newSocket.on("roomReady", () => {
-        setIsRoomReady(true);
-        console.log(`Salle ${roomId} est prête.`);
-      });
-
-      newSocket.on("error", (message: string) => {
-        alert(message);
-        setRoomId(null);
-        setIsRoomReady(false);
-      });
-
-      // Nettoyage lors du démontage
-      return () => {
-        newSocket.disconnect();
-        console.log("Socket déconnecté proprement lors du démontage.");
-      };
-    }
-  }, [mode, socket, playerSymbol, nextStartingPlayer, roomId]);
-
   // Réinitialiser le jeu
   const resetGame = () => {
     initializeGame(nextStartingPlayer);
-
-    if (mode === "online" && socket) {
-      socket.emit("resetGame");
-    }
   };
 
   useEffect(() => {
-    // Nettoyage lors du démontage du composant
-    return () => {
-      if (socket) {
-        socket.disconnect();
-        console.log("Socket déconnecté proprement lors du démontage du composant.");
-      }
-    };
-  }, [socket]);
-
-  useEffect(() => {
-    if (mode === "online" && socket) {
+    if (mode === "online") {
       const handleRoomReady = () => {
         if (roomId) {
           setIsRoomReady(true);
@@ -442,7 +339,7 @@ const Board: React.FC = () => {
         setIsRoomReady(false);
       };
 
-      const handleMoveMade = (moveData: MoveData) => {
+      const handleMoveMade = (moveData: any) => {
         const {index, symbol} = moveData;
         setSquares((prevSquares) => {
           const newSquares = prevSquares.slice();
@@ -451,40 +348,17 @@ const Board: React.FC = () => {
         });
         setIsXNext(symbol !== playerSymbol);
       };
-
-      socket.on("roomReady", handleRoomReady);
-      socket.on("error", handleError);
-      socket.on("moveMade", handleMoveMade);
-
-      // Ajoute l'écouteur ici
-      socket.on("opponentReady", (opponentName: string) => {
-        setOpponentName(opponentName);
-        console.log(`Votre adversaire, ${opponentName}, est prêt.`);
-      });
-
-      // Nettoyage des écouteurs
-      return () => {
-        socket.off("roomReady", handleRoomReady);
-        socket.off("error", handleError);
-        socket.off("moveMade", handleMoveMade);
-      };
     }
-  }, [socket, mode, roomId, playerSymbol]);
+  }, [mode, roomId, playerSymbol]);
 
   useEffect(() => {
-    if (mode === "online" && socket) {
+    if (mode === "online") {
       const handleOpponentReady = (opponentName: string) => {
         setOpponentName(opponentName);
         console.log(`Votre adversaire, ${opponentName}, est prêt.`);
       };
-
-      socket.on("opponentReady", handleOpponentReady);
-
-      return () => {
-        socket.off("opponentReady", handleOpponentReady);
-      };
     }
-  }, [socket, mode]);
+  }, [mode]);
 
   return (
     <div className="flex flex-col items-center gap-8">
@@ -535,7 +409,6 @@ const Board: React.FC = () => {
             className="px-6 py-3 bg-blue-500 text-white rounded-lg"
             onClick={() => {
               if (playerName.trim()) {
-                socket?.emit("playerReady", playerName);
                 console.log(`Nom du joueur envoyé : ${playerName}`);
               } else {
                 alert("Veuillez entrer un nom de joueur.");
