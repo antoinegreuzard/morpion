@@ -134,37 +134,22 @@ const Board: React.FC = () => {
 
       console.log("Données de la salle :", data);
 
-      // Si un adversaire est déjà présent dans la salle
+      // Si `opponentName` est défini et différent du joueur actuel, l'adversaire est présent
       if (data.opponentName && data.opponentName !== playerName) {
         console.log("Adversaire détecté :", data.opponentName);
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
       }
-      // Si le joueur actuel rejoint en tant qu'opposant (joueur 2)
-      else if (data.playerName && data.playerName !== playerName && !data.opponentName) {
-        console.log("Rejoint en tant qu'opposant :", playerName);
-
-        // Mettre à jour l'opposant
-        await fetch(`/api/game/${roomId}`, {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            squares: data.squares,
-            isXNext: data.isXNext,
-            playerName: data.playerName,
-            opponentName: playerName,
-            winner: data.winner,
-          }),
-        });
-
-        setOpponentName(data.playerName);
-        setIsRoomReady(true);
-        setIsWaitingForOpponent(false);
+      // Si le joueur actuel est le créateur de la salle
+      else if (data.playerName === playerName) {
+        console.log("Le joueur actuel est le créateur de la salle :", playerName);
+        setIsRoomReady(false);
+        setIsWaitingForOpponent(true);
       }
-      // Si la salle est vide, mettre à jour avec le joueur actuel
-      else if (!data.playerName) {
-        console.log("Salle vide, enregistrement du joueur 1 :", playerName);
+      // Si la salle est vide (aucun joueur défini)
+      else if (!data.playerName && !data.opponentName) {
+        console.log("Salle vide, enregistrement du créateur :", playerName);
 
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
@@ -181,8 +166,31 @@ const Board: React.FC = () => {
         setOpponentName("");
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
-      } else {
+      }
+      // Si un adversaire rejoint (créateur présent, mais `opponentName` n'est pas défini)
+      else if (data.playerName && !data.opponentName && data.playerName !== playerName) {
+        console.log("Rejoint en tant qu'opposant :", playerName);
+
+        await fetch(`/api/game/${roomId}`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            squares: data.squares,
+            isXNext: data.isXNext,
+            playerName: data.playerName,
+            opponentName: playerName,
+            winner: data.winner,
+          }),
+        });
+
+        setOpponentName(playerName);
+        setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
+      }
+      // Sinon, on reste en attente d'un adversaire
+      else {
         console.log("En attente d'un adversaire...");
+        setOpponentName("");
         setIsRoomReady(false);
         setIsWaitingForOpponent(true);
       }
@@ -451,15 +459,10 @@ const Board: React.FC = () => {
 
           console.log("Données de la salle :", data);
 
-          // Si l'adversaire est détecté
+          // Si l'adversaire (`opponentName`) est présent et différent du joueur actuel
           if (data.opponentName && data.opponentName !== playerName) {
-            console.log("Adversaire détecté : ", data.opponentName);
+            console.log("Adversaire détecté :", data.opponentName);
             setOpponentName(data.opponentName);
-            setIsRoomReady(true);
-            setIsWaitingForOpponent(false);
-          } else if (data.playerName && data.playerName !== playerName) {
-            console.log("Adversaire détecté (inversé) : ", data.playerName);
-            setOpponentName(data.playerName);
             setIsRoomReady(true);
             setIsWaitingForOpponent(false);
           } else {
@@ -475,11 +478,6 @@ const Board: React.FC = () => {
       return () => clearInterval(intervalId);
     }
   }, [mode, roomId, isWaitingForOpponent, playerName]);
-
-  useEffect(() => {
-    fetchLeaderboard();
-    fetchStats();
-  }, [fetchLeaderboard, fetchStats, startingPlayer]);
 
   // Réinitialiser le jeu
   const resetGame = async () => {
