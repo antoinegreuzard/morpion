@@ -11,8 +11,12 @@ type GameState = {
 };
 
 // GET: Récupérer l'état du jeu depuis la base de données
-export async function GET(req: NextRequest, {params}: { params: { roomId: string } }) {
-  const {roomId} = params;
+export async function GET(req: NextRequest) {
+  const roomId = req.nextUrl.pathname.split("/").pop();
+
+  if (!roomId) {
+    return NextResponse.json({error: "roomId is missing"}, {status: 400});
+  }
 
   const sql = "SELECT * FROM online_games WHERE room_id = $1";
   const result = await query(sql, [roomId]);
@@ -34,8 +38,13 @@ export async function GET(req: NextRequest, {params}: { params: { roomId: string
 }
 
 // POST: Mettre à jour l'état du jeu dans la base de données
-export async function POST(req: NextRequest, {params}: { params: { roomId: string } }) {
-  const {roomId} = params;
+export async function POST(req: NextRequest) {
+  const roomId = req.nextUrl.pathname.split("/").pop();
+
+  if (!roomId) {
+    return NextResponse.json({error: "roomId is missing"}, {status: 400});
+  }
+
   const {squares, isXNext, playerName, opponentName, winner} = await req.json();
 
   const sql = `
