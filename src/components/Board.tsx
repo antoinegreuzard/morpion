@@ -37,6 +37,7 @@ const Board: React.FC = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -124,26 +125,28 @@ const Board: React.FC = () => {
     }
   }, []);
 
-  const joinRoom = async (roomId: string, playerName: string) => {
+  const joinRoom = async (roomId: string, playerName: string, creator: boolean = false) => {
     setRoomId(roomId);
     setPlayerName(playerName);
+    setIsCreator(creator);
 
-    // Vérifiez si l'adversaire est déjà présent dans la salle
     try {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
+      // Si l'adversaire est déjà présent dans la salle
       if (data.opponentName && data.opponentName !== playerName) {
         setOpponentName(data.opponentName);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
       } else {
+        setOpponentName("");
         setIsRoomReady(false);
-        setIsWaitingForOpponent(true);
+        setIsWaitingForOpponent(creator); // Activer l'attente seulement si c'est le créateur
       }
     } catch (error) {
       console.error("Erreur lors de la vérification de l'adversaire :", error);
-      setIsWaitingForOpponent(true);
+      setIsWaitingForOpponent(creator);
     }
   };
 
@@ -397,13 +400,13 @@ const Board: React.FC = () => {
   }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
 
   useEffect(() => {
-    if (mode === "online" && roomId && isWaitingForOpponent) {
+    if (mode === "online" && roomId && isWaitingForOpponent && !isCreator) {
       const checkOpponentJoined = async () => {
         try {
           const response = await fetch(`/api/game/${roomId}`);
           const data = await response.json();
 
-          // Vérifiez si l'adversaire a rejoint la salle
+          // Vérifiez si l'adversaire a rejoint
           if (data.opponentName && data.opponentName !== playerName) {
             setOpponentName(data.opponentName);
             setIsRoomReady(true);
@@ -418,7 +421,7 @@ const Board: React.FC = () => {
       const intervalId = setInterval(checkOpponentJoined, 2000);
       return () => clearInterval(intervalId);
     }
-  }, [mode, roomId, isWaitingForOpponent, playerName]);
+  }, [mode, roomId, isWaitingForOpponent, isCreator, playerName]);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -513,7 +516,7 @@ const Board: React.FC = () => {
 
       {/* Configuration du jeu online */}
       {mode === "online" && !roomId && !startingPlayer && !isWaitingForOpponent && (
-        <OnlineGameSetup onJoinRoom={joinRoom}/>
+        <OnlineGameSetup onJoinRoom={(roomId, playerName) => joinRoom(roomId, playerName, true)}/>
       )}
 
       {/* Configuration des joueurs pour tous les modes */}
@@ -601,7 +604,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Plateau de jeu */}
-      {startingPlayer && (mode !== "online" || isRoomReady) && (
+      {startingPlayer && (mode !== "online" || (mode === "online" && isRoomReady)) && (
         <div className="flex flex-col items-center gap-4">
           <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
             {winner ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}` : `Prochain coup : ${isXNext ? playerName : opponentName}`}
