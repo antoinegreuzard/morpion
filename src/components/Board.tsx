@@ -36,6 +36,7 @@ const Board: React.FC = () => {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
+  const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -127,6 +128,7 @@ const Board: React.FC = () => {
     setRoomId(roomId);
     setPlayerName(playerName);
     setIsRoomReady(true);
+    setIsWaitingForOpponent(true);
   };
 
   const handleClick = async (index: number) => {
@@ -379,6 +381,31 @@ const Board: React.FC = () => {
   }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
 
   useEffect(() => {
+    if (mode === "online" && roomId && isWaitingForOpponent) {
+      const checkOpponentJoined = async () => {
+        try {
+          const response = await fetch(`/api/game/${roomId}`);
+          const data = await response.json();
+
+          if (data.opponentName && data.opponentName !== playerName) {
+            setOpponentName(data.opponentName);
+            setIsRoomReady(true);
+            setIsWaitingForOpponent(false);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la vérification de l'adversaire :", error);
+          setIsWaitingForOpponent(false);
+        }
+      };
+
+      const intervalId = setInterval(checkOpponentJoined, 2000);
+
+      // Nettoyage de l'intervalle lorsque l'adversaire rejoint ou que l'écran change
+      return () => clearInterval(intervalId);
+    }
+  }, [mode, roomId, isWaitingForOpponent, playerName]);
+
+  useEffect(() => {
     fetchLeaderboard();
     fetchStats();
   }, [fetchLeaderboard, fetchStats, startingPlayer]);
@@ -424,6 +451,24 @@ const Board: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center gap-8">
+      {/* Loading */}
+      {isWaitingForOpponent && (
+        <div className="flex flex-col items-center gap-4">
+          <h2 className="text-2xl font-bold mb-4">En attente de l&#39;adversaire...</h2>
+          <p>Partagez l&#39;ID de la salle : <span className="font-bold">{roomId}</span></p>
+          <button
+            className="px-6 py-3 bg-red-500 text-white rounded-lg"
+            onClick={() => {
+              setIsWaitingForOpponent(false);
+              setRoomId(null);
+              setMode(null);
+            }}
+          >
+            Annuler
+          </button>
+        </div>
+      )}
+
       {/* Sélection du mode de jeu */}
       {!mode && (
         <div className="flex flex-col items-center mb-6">
@@ -452,12 +497,12 @@ const Board: React.FC = () => {
       )}
 
       {/* Configuration du jeu online */}
-      {mode === "online" && !roomId && !startingPlayer && (
+      {mode === "online" && !roomId && !startingPlayer && !isWaitingForOpponent && (
         <OnlineGameSetup onJoinRoom={joinRoom}/>
       )}
 
       {/* Configuration des joueurs pour tous les modes */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady)) && !startingPlayer && (
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady)) && !startingPlayer && !isWaitingForOpponent && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
           <input
@@ -489,7 +534,7 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId)) && !startingPlayer && playerName.trim() && (
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId)) && !startingPlayer && playerName.trim() && !isWaitingForOpponent && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">
