@@ -44,7 +44,7 @@ const Board: React.FC = () => {
   );
 
   // Initialiser le jeu
-  const initializeGame = (firstPlayer: "player" | "ai") => {
+  const initializeGame = async (firstPlayer: "player" | "ai") => {
     resetMemo();
     setSquares(Array(9).fill(null));
     setIsXNext(firstPlayer === "player");
@@ -59,6 +59,27 @@ const Board: React.FC = () => {
     } else {
       setPlayerSymbol("O");
       setAiSymbol("X");
+    }
+
+    // Si mode online, synchroniser l'état initial avec l'API
+    if (mode === "online" && roomId) {
+      try {
+        await fetch(`/api/game/${roomId}`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            squares: Array(9).fill(null),
+            isXNext: firstPlayer === "player",
+            playerName,
+            opponentName,
+            winner: null,
+          }),
+        });
+
+        await refreshGameState();
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation du jeu en ligne :", error);
+      }
     }
 
     // Mettre à jour le leaderboard et les statistiques
@@ -119,6 +140,11 @@ const Board: React.FC = () => {
     setSquares(newSquares);
     setIsXNext(nextIsX);
 
+    // Si mode multijoueur local, changer le tour
+    if (mode === "multiplayer") {
+      setIsXNext(!isXNext);
+    }
+
     // Si mode online, mettre à jour l'API
     if (mode === "online" && roomId) {
       try {
@@ -132,11 +158,17 @@ const Board: React.FC = () => {
           }),
         });
 
-        // Rafraîchir l'état du jeu via SWR
         await refreshGameState();
       } catch (error) {
         console.error("Erreur lors de la mise à jour du jeu en ligne :", error);
       }
+    }
+
+    // Vérifier le gagnant et mettre à jour le leaderboard
+    if (currentWinner) {
+      setWinner(currentWinner);
+      await updateLeaderboard(currentWinner);
+      await updateStats(currentWinner);
     }
   };
 
@@ -378,8 +410,16 @@ const Board: React.FC = () => {
       setSquares(gameState.squares);
       setIsXNext(gameState.isXNext);
       setWinner(gameState.winner);
+      setPlayerName(gameState.playerName || "Joueur 1");
+      setOpponentName(gameState.opponentName || "Joueur 2");
     }
   }, [mode, gameState]);
+
+  useEffect(() => {
+    if (mode === "online" && roomId && gameState) {
+      setOpponentName(gameState.opponentName || "Adversaire");
+    }
+  }, [mode, roomId, gameState]);
 
   return (
     <div className="flex flex-col items-center gap-8">
