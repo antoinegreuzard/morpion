@@ -451,38 +451,12 @@ const Board: React.FC = () => {
       )}
 
       {/* Configuration du jeu online */}
-      {mode === "online" && !roomId && (
+      {mode === "online" && !roomId && !startingPlayer && (
         <OnlineGameSetup onJoinRoom={joinRoom}/>
       )}
 
-      {/* Configuration des joueurs quand la salle est prête */}
-      {mode === "online" && isRoomReady && !startingPlayer && (
-        <div className="flex flex-col items-center mb-6">
-          <h2 className="text-2xl font-bold mb-4">Entrez votre nom :</h2>
-          <input
-            type="text"
-            placeholder="Votre nom"
-            className="mb-2 p-2 border border-gray-300 rounded-lg"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-          />
-          <button
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg"
-            onClick={() => {
-              if (playerName.trim()) {
-                console.log(`Nom du joueur envoyé : ${playerName}`);
-              } else {
-                alert("Veuillez entrer un nom de joueur.");
-              }
-            }}
-          >
-            Commencer la partie
-          </button>
-        </div>
-      )}
-
-      {/* Champs pour les noms des joueurs */}
-      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && (
+      {/* Configuration des joueurs pour tous les modes */}
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady)) && !startingPlayer && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Entrez les noms des joueurs :</h2>
           <input
@@ -501,11 +475,20 @@ const Board: React.FC = () => {
               onChange={(e) => setOpponentName(e.target.value)}
             />
           )}
+          {mode === "online" && opponentName.trim() === "" && (
+            <input
+              type="text"
+              placeholder="Nom de l'adversaire"
+              className="p-2 border border-gray-300 rounded-lg"
+              value={opponentName}
+              onChange={(e) => setOpponentName(e.target.value)}
+            />
+          )}
         </div>
       )}
 
       {/* Sélection du joueur qui commence */}
-      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && (
+      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId)) && !startingPlayer && playerName.trim() && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">
@@ -515,7 +498,7 @@ const Board: React.FC = () => {
             >
               {playerName} commence (X)
             </button>
-            {mode === "solo" && (
+            {(mode === "solo" || mode === "online") && (
               <button
                 className="px-6 py-3 bg-red-500 text-white rounded-lg"
                 onClick={() => initializeGame("ai")}
