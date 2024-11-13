@@ -207,10 +207,10 @@ const Board: React.FC = () => {
     // Vérifie si c'est le tour du joueur actuel
     if (mode === "online" && gameState) {
       console.log(gameState)
-      const isPlayerTurn = (isXNext && playerSymbol === "X") ||
-        (!isXNext && playerSymbol === "O") ||
-        (isXNext && opponentSymbol === "X") ||
-        (!isXNext && opponentSymbol === "O");
+      const isPlayerTurn = (isXNext && playerSymbol === "X" && isCreator) ||
+        (!isXNext && playerSymbol === "O" && isCreator) ||
+        (isXNext && opponentSymbol === "X" && !isCreator) ||
+        (!isXNext && opponentSymbol === "O" && !isCreator);
 
       if (!isPlayerTurn) {
         console.log("Ce n'est pas ton tour !");
