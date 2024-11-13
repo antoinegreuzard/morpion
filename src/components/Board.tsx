@@ -2,11 +2,11 @@
 
 import React, {useState, useEffect, useCallback} from "react";
 import Square from "@/components/Square";
-import Stats, {StatsData} from "@/components/Stats";
+import Stats from "@/components/Stats";
 import ScoreBoard from "@/components/ScoreBoard";
 import {minimax, resetMemo} from "@/utils/minimax";
 import {checkWinner} from "@/utils/checkWinner";
-import Leaderboard, {LeaderboardEntry} from "@/components/Leaderboard";
+import Leaderboard from "@/components/Leaderboard";
 import GameControls from "@/components/GameControls";
 import OnlineGameSetup from "@/components/OnlineGameSetup";
 import useSWR from "swr";
@@ -28,8 +28,6 @@ const Board: React.FC = () => {
   const [scoreUpdated, setScoreUpdated] = useState(false);
   const [playerName, setPlayerName] = useState<string>("Joueur 1");
   const [opponentName, setOpponentName] = useState<string>("Joueur 2");
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [stats, setStats] = useState<StatsData>({aiwins: 0, playerwins: 0, draws: 0});
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
@@ -44,7 +42,19 @@ const Board: React.FC = () => {
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
     fetcher,
-    {refreshInterval: 1000}
+    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
+  );
+
+  const {data: swrStats, mutate: refreshStats} = useSWR(
+    "/api/stats",
+    fetcher,
+    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
+  );
+
+  const {data: swrLeaderboard, mutate: refreshLeaderboard} = useSWR(
+    "/api/leaderboard",
+    fetcher,
+    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
   );
 
   // Initialiser le jeu
@@ -110,8 +120,7 @@ const Board: React.FC = () => {
     try {
       const response = await fetch("/api/leaderboard");
       if (!response.ok) throw new Error("Erreur lors de la récupération du classement.");
-      const data = await response.json();
-      setLeaderboard(data);
+      await response.json();
     } catch (error: unknown) {
       if (error instanceof Error) {
         setLeaderboardError(error.message);
@@ -128,8 +137,7 @@ const Board: React.FC = () => {
     try {
       const response = await fetch("/api/stats");
       if (!response.ok) throw new Error("Erreur lors de la récupération des statistiques.");
-      const data = await response.json();
-      setStats(data);
+      await response.json();
     } catch (error: unknown) {
       if (error instanceof Error) {
         setStatsError(error.message);
@@ -200,14 +208,12 @@ const Board: React.FC = () => {
 
     // Vérifie si c'est le tour du joueur actuel
     if (mode === "online" && gameState) {
-      console.log(gameState)
       const isPlayerTurn = (isXNext && playerSymbol === "X" && isCreator) ||
         (!isXNext && playerSymbol === "O" && isCreator) ||
         (isXNext && opponentSymbol === "X" && !isCreator) ||
         (!isXNext && opponentSymbol === "O" && !isCreator);
 
       if (!isPlayerTurn) {
-        console.log("Ce n'est pas ton tour !");
         return;
       }
     }
@@ -293,19 +299,7 @@ const Board: React.FC = () => {
   const updateLeaderboard = useCallback(async (currentWinner: string) => {
     if (scoreUpdated) return; // Évite la mise à jour multiple
 
-    let player = "";
-
-    if (mode === "solo") {
-      player = currentWinner === aiSymbol ? "IA" : playerName;
-    } else if (mode === "multiplayer") {
-      if (currentWinner === playerSymbol) {
-        player = playerName;
-      } else if (currentWinner === aiSymbol) {
-        player = opponentName;
-      } else {
-        return;
-      }
-    }
+    const player = mode === "solo" ? (currentWinner === aiSymbol ? "IA" : playerName) : currentWinner === playerSymbol ? playerName : opponentName;
 
     try {
       const response = await fetch("/api/leaderboard", {
@@ -318,12 +312,13 @@ const Board: React.FC = () => {
         const errorData = await response.json();
         alert(errorData.message);
       } else {
-        setScoreUpdated(true); // Empêche d'autres mises à jour
+        setScoreUpdated(true);
+        await refreshLeaderboard();
       }
     } catch (error) {
       handleError(error);
     }
-  }, [aiSymbol, mode, opponentName, playerName, playerSymbol, scoreUpdated]);
+  }, [aiSymbol, mode, opponentName, playerName, playerSymbol, refreshLeaderboard, scoreUpdated]);
 
   const handleError = (error: unknown) => {
     if (error instanceof Error) {
@@ -403,11 +398,13 @@ const Board: React.FC = () => {
       if (!response.ok) {
         const errorData = await response.json();
         alert(errorData.message);
+      } else {
+        await refreshStats(); // Rafraîchir les données après la mise à jour
       }
     } catch (error) {
       handleError(error);
     }
-  }, [aiSymbol, playerSymbol]);
+  }, [aiSymbol, playerSymbol, refreshStats]);
 
   useEffect(() => {
     if (mode === "solo" && startingPlayer === "ai" && squares.every((sq) => sq === null) && !winner) {
@@ -677,13 +674,13 @@ const Board: React.FC = () => {
               mode={mode || "solo"}
             />
             <Leaderboard
-              leaderboard={leaderboard}
+              leaderboard={swrLeaderboard || []}
               isLoading={isLeaderboardLoading}
               error={leaderboardError}
             />
             {mode === "solo" && (
               <Stats
-                stats={stats}
+                stats={swrStats || {aiwins: 0, playerwins: 0, draws: 0}}
                 isLoading={isStatsLoading}
                 error={statsError}
               />
