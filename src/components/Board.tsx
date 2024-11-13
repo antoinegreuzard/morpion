@@ -74,6 +74,7 @@ const Board: React.FC = () => {
             squares: Array(9).fill(null),
             isXNext: nextStartingPlayer === "player",
             winner: null,
+            startingPlayer: firstPlayer, // Ajouter ceci
           }),
         });
         await refreshGameState();
@@ -199,6 +200,7 @@ const Board: React.FC = () => {
             squares: Array(9).fill(null),
             isXNext: nextStartingPlayer === "player",
             winner: null,
+            startingPlayer: startingPlayer, // Ajouter ceci
           }),
         });
         await refreshGameState();
@@ -474,6 +476,13 @@ const Board: React.FC = () => {
       setOpponentName(gameState.opponentName || "Joueur 2");
     }
   }, [mode, gameState, isOpponentJoined]);
+
+  useEffect(() => {
+    if (mode === "online" && gameState && gameState.startingPlayer && !startingPlayer) {
+      setStartingPlayer(gameState.startingPlayer);
+      setIsXNext(gameState.startingPlayer === "player");
+    }
+  }, [mode, gameState, startingPlayer]);
 
   useEffect(() => {
     if (mode === "online" && roomId && gameState) {

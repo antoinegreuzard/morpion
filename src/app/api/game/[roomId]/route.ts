@@ -52,22 +52,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const {squares, isXNext, playerName, opponentName, winner} = await req.json();
+    const {squares, isXNext, playerName, opponentName, winner, startingPlayer} = await req.json();
 
     // Valider les données
     const validatedSquares = Array.isArray(squares) ? squares : Array(9).fill(null);
     const validatedIsXNext = typeof isXNext === "boolean" ? isXNext : true;
 
     const sql = `
-      INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW()) ON CONFLICT (room_id)
-      DO
+      INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, starting_player,
+                                updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) ON CONFLICT (room_id)
+DO
       UPDATE SET
         squares = EXCLUDED.squares,
         isxnext = EXCLUDED.isxnext,
-        player1_name = EXCLUDED.player1_name,
-        player2_name = EXCLUDED.player2_name,
+        player1_name = COALESCE (EXCLUDED.player1_name, online_games.player1_name),
+        player2_name = COALESCE (EXCLUDED.player2_name, online_games.player2_name),
         winner = EXCLUDED.winner,
+        starting_player = EXCLUDED.starting_player,
         updated_at = NOW();
     `;
 
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
       playerName || null,
       opponentName || null,
       winner || null,
+      startingPlayer || null,
     ]);
 
     return NextResponse.json({message: "Game state updated"});
