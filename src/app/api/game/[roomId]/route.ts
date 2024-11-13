@@ -116,3 +116,68 @@ export async function POST(req: NextRequest) {
     }
   }
 }
+
+// DELETE: Supprimer une room lorsque le joueur quitte la partie
+export async function DELETE(req: NextRequest) {
+  const roomId = req.nextUrl.pathname.split("/").pop();
+
+  if (!roomId) {
+    return NextResponse.json({error: "roomId is missing"}, {status: 400});
+  }
+
+  const sql = `
+    DELETE
+    FROM online_games
+    WHERE room_id = $1;
+  `;
+
+  try {
+    await query(sql, [roomId]);
+    return NextResponse.json({message: "Room supprimée avec succès."});
+  } catch (error: unknown) {
+    console.error("Erreur lors de la suppression de la room :", error);
+    return NextResponse.json({error: "Erreur interne du serveur"}, {status: 500});
+  }
+}
+
+
+// PATCH: Mettre à jour l'état d'activité des joueurs
+export async function PATCH(req: NextRequest) {
+  const roomId = req.nextUrl.pathname.split("/").pop();
+  const {player, isActive} = await req.json();
+
+  if (!roomId || !player) {
+    return NextResponse.json({error: "Données manquantes"}, {status: 400});
+  }
+
+  const column = player === "player1" ? "player1_active" : "player2_active";
+
+  try {
+    const sql = `
+      UPDATE online_games
+      SET ${column} = $1
+      WHERE room_id = $2 RETURNING player1_active, player2_active;
+    `;
+    const result = await query(sql, [isActive, roomId]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({error: "Room introuvable"}, {status: 404});
+    }
+
+    const {player1_active, player2_active} = result.rows[0];
+
+    // Supprimer la room si les deux joueurs sont inactifs
+    if (!player1_active && !player2_active) {
+      const deleteSql = `DELETE
+                         FROM online_games
+                         WHERE room_id = $1;`;
+      await query(deleteSql, [roomId]);
+      return NextResponse.json({message: "Room supprimée car les deux joueurs sont partis."});
+    }
+
+    return NextResponse.json({message: "État du joueur mis à jour."});
+  } catch (error: unknown) {
+    console.error("Erreur lors de la mise à jour de l'état du joueur :", error);
+    return NextResponse.json({error: "Erreur interne du serveur"}, {status: 500});
+  }
+}

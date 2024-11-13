@@ -42,19 +42,19 @@ const Board: React.FC = () => {
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
     fetcher,
-    {revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 0}
+    {revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 300}
   );
 
   const {data: swrStats, mutate: refreshStats} = useSWR(
     "/api/stats",
     fetcher,
-    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
+    {revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 0}
   );
 
   const {data: swrLeaderboard, mutate: refreshLeaderboard} = useSWR(
     "/api/leaderboard",
     fetcher,
-    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
+    {revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 0}
   );
 
   // Initialiser le jeu
@@ -258,6 +258,25 @@ const Board: React.FC = () => {
       }
     }
   };
+
+  const leaveRoom = useCallback(async () => {
+    if (roomId) {
+      try {
+        await fetch(`/api/game/${roomId}`, {
+          method: "PATCH",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            player: isCreator ? "player1" : "player2",
+            isActive: false,
+          }),
+        });
+        setRoomId(null);
+        setMode(null);
+      } catch (error) {
+        console.error("Erreur lors de la sortie de la room :", error);
+      }
+    }
+  }, [roomId, isCreator]);
 
   // Fonction pour que l'IA joue son coup
   const makeAIMove = useCallback(() => {
@@ -531,6 +550,16 @@ const Board: React.FC = () => {
     }
   }, [mode, roomId, gameState, isOpponentJoined, isCreator, isWaitingForOpponent]);
 
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      leaveRoom();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [leaveRoom]);
 
   useEffect(() => {
     const fetchOpponentName = async () => {
