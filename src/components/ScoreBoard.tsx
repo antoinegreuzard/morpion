@@ -7,7 +7,7 @@ interface ScoreBoardProps {
   drawScore: number;
   playerName: string;
   opponentName: string;
-  mode: "solo" | "multiplayer";
+  mode: "solo" | "multiplayer" | "online";
 }
 
 const ScoreBoard: React.FC<ScoreBoardProps> = ({
