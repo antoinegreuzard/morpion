@@ -30,7 +30,9 @@ export async function GET(req: NextRequest) {
       playerName: gameState.player1_name,
       opponentName: gameState.player2_name,
       winner: gameState.winner,
-      startingPlayer: gameState.starting_player
+      startingPlayer: gameState.starting_player,
+      player_symbol: gameState.player_symbol,
+      opponent_symbol: gameState.opponent_symbol,
     });
   }
 
@@ -62,9 +64,9 @@ export async function POST(req: NextRequest) {
 
     const sql = `
       INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, starting_player,
-                                updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) ON CONFLICT (room_id)
-DO
+                                player_symbol, opponent_symbol, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) ON CONFLICT (room_id)
+  DO
       UPDATE SET
         squares = EXCLUDED.squares,
         isxnext = EXCLUDED.isxnext,
@@ -72,6 +74,8 @@ DO
         player2_name = COALESCE (EXCLUDED.player2_name, online_games.player2_name),
         winner = EXCLUDED.winner,
         starting_player = EXCLUDED.starting_player,
+        player_symbol = COALESCE (EXCLUDED.player_symbol, online_games.player_symbol),
+        opponent_symbol = COALESCE (EXCLUDED.opponent_symbol, online_games.opponent_symbol),
         updated_at = NOW();
     `;
 
@@ -83,6 +87,8 @@ DO
       opponentName || null,
       winner || null,
       startingPlayer || null,
+      "X", // Toujours "X" pour le créateur
+      "O", // Toujours "O" pour l'opposant
     ]);
 
     return NextResponse.json({message: "Game state updated"});

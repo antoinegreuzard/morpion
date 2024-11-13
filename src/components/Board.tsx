@@ -56,12 +56,26 @@ const Board: React.FC = () => {
     setScoreUpdated(false);
 
     // Définir les symboles en fonction du joueur qui commence
-    if (firstPlayer === "player") {
-      setPlayerSymbol("X");
-      setAiSymbol("O");
+    if (mode === "online") {
+      // Ne redéfinir les symboles que s'ils ne sont pas déjà définis
+      if (playerSymbol !== "X" && playerSymbol !== "O") {
+        if (isCreator) {
+          setPlayerSymbol("X");
+          setAiSymbol("O");
+        } else {
+          setPlayerSymbol("O");
+          setAiSymbol("X");
+        }
+      }
     } else {
-      setPlayerSymbol("O");
-      setAiSymbol("X");
+      // Modes "solo" et "multiplayer"
+      if (firstPlayer === "player") {
+        setPlayerSymbol("X");
+        setAiSymbol("O");
+      } else {
+        setPlayerSymbol("O");
+        setAiSymbol("X");
+      }
     }
 
     // Si mode online, synchroniser l'état initial avec l'API
@@ -74,7 +88,7 @@ const Board: React.FC = () => {
             squares: Array(9).fill(null),
             isXNext: nextStartingPlayer === "player",
             winner: null,
-            startingPlayer: firstPlayer, // Ajouter ceci
+            startingPlayer: firstPlayer,
           }),
         });
         await refreshGameState();
@@ -143,9 +157,13 @@ const Board: React.FC = () => {
             playerName,
             opponentName: null,
             winner: null,
-            startingPlayer
+            startingPlayer,
+            playerSymbol: "X",
+            opponentSymbol: "O",
           }),
         });
+        setPlayerSymbol("X");
+        setAiSymbol("O");
         setIsCreator(true);
         setIsWaitingForOpponent(true);
         setIsRoomReady(false);
@@ -156,8 +174,12 @@ const Board: React.FC = () => {
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             opponentName: playerName,
+            playerSymbol: "X", // Créateur est "X"
+            opponentSymbol: "O", // Rejoignant est "O"
           }),
         });
+        setPlayerSymbol("O");
+        setAiSymbol("X");
         setIsOpponentJoined(true);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
@@ -475,8 +497,10 @@ const Board: React.FC = () => {
       setWinner(gameState.winner);
       setPlayerName(gameState.playerName || "Joueur 1");
       setOpponentName(gameState.opponentName || "Joueur 2");
+      setPlayerSymbol(gameState.player_symbol || "X");
+      setAiSymbol(gameState.opponent_symbol || "O");
     }
-  }, [mode, gameState, isOpponentJoined]);
+  }, [mode, gameState]);
 
   useEffect(() => {
     if (mode === "online" && gameState && gameState.startingPlayer && !startingPlayer) {
@@ -630,7 +654,9 @@ const Board: React.FC = () => {
       {/* Contrôles et tableau de bord */}
       {startingPlayer && (
         <div className="flex flex-col items-center gap-6">
-          <GameControls saveGame={saveGame} loadGame={loadGame}/>
+          {mode !== "online" && (
+            <GameControls saveGame={saveGame} loadGame={loadGame}/>
+          )}
           <div className="flex flex-wrap justify-center gap-8">
             <ScoreBoard
               playerScore={playerScore}
