@@ -197,6 +197,7 @@ const Board: React.FC = () => {
       }
 
       await refreshGameState();
+      await refreshLeaderboard();
     } catch (error) {
       console.error("Erreur lors de la connexion à la salle :", error);
     }
