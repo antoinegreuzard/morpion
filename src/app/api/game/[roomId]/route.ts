@@ -8,6 +8,7 @@ type GameState = {
   playerName?: string;
   opponentName?: string;
   winner?: string;
+  startingPlayer?: string;
 };
 
 // GET: Récupérer l'état du jeu depuis la base de données
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
       playerName: gameState.player1_name,
       opponentName: gameState.player2_name,
       winner: gameState.winner,
+      startingPlayer: gameState.starting_player
     });
   }
 

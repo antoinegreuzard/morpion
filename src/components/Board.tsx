@@ -143,6 +143,7 @@ const Board: React.FC = () => {
             playerName,
             opponentName: null,
             winner: null,
+            startingPlayer
           }),
         });
         setIsCreator(true);
@@ -481,8 +482,9 @@ const Board: React.FC = () => {
     if (mode === "online" && gameState && gameState.startingPlayer && !startingPlayer) {
       setStartingPlayer(gameState.startingPlayer);
       setIsXNext(gameState.startingPlayer === "player");
+      refreshGameState();
     }
-  }, [mode, gameState, startingPlayer]);
+  }, [mode, gameState, startingPlayer, refreshGameState]);
 
   useEffect(() => {
     if (mode === "online" && roomId && gameState) {
