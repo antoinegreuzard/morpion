@@ -51,22 +51,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({error: "roomId is missing"}, {status: 400});
   }
 
-  const {squares, isXNext, playerName, opponentName, winner} = await req.json();
+  try {
+    const {squares, isXNext, playerName, opponentName, winner} = await req.json();
 
-  const sql = `
-    INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW()) ON CONFLICT (room_id)
-    DO
-    UPDATE SET
-      squares = EXCLUDED.squares,
-      isxnext = EXCLUDED.isxnext,
-      player1_name = EXCLUDED.player1_name,
-      player2_name = EXCLUDED.player2_name,
-      winner = EXCLUDED.winner,
-      updated_at = NOW();
-  `;
+    // Valider les données
+    const validatedSquares = Array.isArray(squares) ? squares : Array(9).fill(null);
+    const validatedIsXNext = typeof isXNext === "boolean" ? isXNext : true;
 
-  await query(sql, [roomId, JSON.stringify(squares), isXNext, playerName, opponentName, winner]);
+    const sql = `
+      INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW()) ON CONFLICT (room_id)
+      DO
+      UPDATE SET
+        squares = EXCLUDED.squares,
+        isxnext = EXCLUDED.isxnext,
+        player1_name = EXCLUDED.player1_name,
+        player2_name = EXCLUDED.player2_name,
+        winner = EXCLUDED.winner,
+        updated_at = NOW();
+    `;
 
-  return NextResponse.json({message: "Game state updated"});
+    await query(sql, [
+      roomId,
+      JSON.stringify(validatedSquares),
+      validatedIsXNext,
+      playerName || null,
+      opponentName || null,
+      winner || null,
+    ]);
+
+    return NextResponse.json({message: "Game state updated"});
+  } catch (error) {
+    console.error("Erreur dans la route POST :", error);
+    return NextResponse.json({error: "Internal Server Error", details: error.message}, {status: 500});
+  }
 }
