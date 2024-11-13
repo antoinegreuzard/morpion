@@ -1,4 +1,3 @@
-// src/app/api/game/[roomId]/route.ts
 import {NextRequest, NextResponse} from "next/server";
 import {query} from "@/utils/db";
 
@@ -9,6 +8,8 @@ type GameState = {
   opponentName?: string;
   winner?: string;
   startingPlayer?: string;
+  player_symbol?: string;
+  opponent_symbol?: string;
 };
 
 // GET: Récupérer l'état du jeu depuis la base de données
@@ -31,8 +32,8 @@ export async function GET(req: NextRequest) {
       opponentName: gameState.player2_name,
       winner: gameState.winner,
       startingPlayer: gameState.starting_player,
-      player_symbol: gameState.player_symbol,
-      opponent_symbol: gameState.opponent_symbol,
+      player_symbol: gameState.player_symbol ?? "X",
+      opponent_symbol: gameState.opponent_symbol ?? "O",
     });
   }
 
@@ -43,6 +44,8 @@ export async function GET(req: NextRequest) {
     playerName: undefined,
     opponentName: undefined,
     winner: undefined,
+    player_symbol: "X",
+    opponent_symbol: "O",
   };
   return NextResponse.json(initialState);
 }
@@ -56,17 +59,28 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const {squares, isXNext, playerName, opponentName, winner, startingPlayer} = await req.json();
+    const {
+      squares,
+      isXNext,
+      playerName,
+      opponentName,
+      winner,
+      startingPlayer,
+      player_symbol,
+      opponent_symbol
+    } = await req.json();
 
     // Valider les données
     const validatedSquares = Array.isArray(squares) ? squares : Array(9).fill(null);
     const validatedIsXNext = typeof isXNext === "boolean" ? isXNext : true;
+    const validatedPlayerSymbol = player_symbol || "X";
+    const validatedOpponentSymbol = opponent_symbol || "O";
 
     const sql = `
       INSERT INTO online_games (room_id, squares, isxnext, player1_name, player2_name, winner, starting_player,
                                 player_symbol, opponent_symbol, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) ON CONFLICT (room_id)
-  DO
+      DO
       UPDATE SET
         squares = EXCLUDED.squares,
         isxnext = EXCLUDED.isxnext,
@@ -87,8 +101,8 @@ export async function POST(req: NextRequest) {
       opponentName || null,
       winner || null,
       startingPlayer || null,
-      "X", // Toujours "X" pour le créateur
-      "O", // Toujours "O" pour l'opposant
+      validatedPlayerSymbol,
+      validatedOpponentSymbol,
     ]);
 
     return NextResponse.json({message: "Game state updated"});

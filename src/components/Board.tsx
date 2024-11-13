@@ -39,6 +39,7 @@ const Board: React.FC = () => {
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
   const [isOpponentJoined, setIsOpponentJoined] = useState(false);
+  const [opponentSymbol, setOpponentSymbol] = useState<"X" | "O">("O");
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -162,11 +163,17 @@ const Board: React.FC = () => {
             opponentSymbol: "O",
           }),
         });
-        setPlayerSymbol("X");
-        setAiSymbol("O");
+        if (data.player_symbol && data.opponent_symbol) {
+          setPlayerSymbol(data.player_symbol);
+          setAiSymbol(data.opponent_symbol);
+        } else {
+          console.error("Les symboles des joueurs ne sont pas définis :", data);
+        }
         setIsCreator(true);
         setIsWaitingForOpponent(true);
         setIsRoomReady(false);
+        setPlayerSymbol("O");
+        setOpponentSymbol("X");
       } else if (!data.opponentName && data.playerName !== playerName) {
         // Joueur rejoignant la room
         await fetch(`/api/game/${roomId}`, {
@@ -183,6 +190,8 @@ const Board: React.FC = () => {
         setIsOpponentJoined(true);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
+        setPlayerSymbol("X");
+        setOpponentSymbol("O");
       }
 
       await refreshGameState();
@@ -192,26 +201,31 @@ const Board: React.FC = () => {
   };
 
   const handleClick = async (index: number) => {
+    // Empêche de jouer si la case est déjà occupée, s'il y a un gagnant ou si le jeu n'est pas initialisé
     if (squares[index] || winner || startingPlayer === null) return;
 
-    if (mode === "online") {
-      const isPlayerTurn = (isXNext && playerSymbol === "X") || (!isXNext && playerSymbol === "O");
-      if (!isPlayerTurn) return;
+    // Vérifie si c'est le tour du joueur actuel
+    if (mode === "online" && gameState) {
+      console.log(gameState)
+      const isPlayerTurn = (isXNext && playerSymbol === "X") ||
+        (!isXNext && playerSymbol === "O") ||
+        (isXNext && opponentSymbol === "X") ||
+        (!isXNext && opponentSymbol === "O");
+
+      if (!isPlayerTurn) {
+        console.log("Ce n'est pas ton tour !");
+        return;
+      }
     }
 
     const newSquares = squares.slice();
     newSquares[index] = isXNext ? playerSymbol : aiSymbol;
-    const nextIsX = !isXNext;
+    const nextIsX = newSquares.filter(Boolean).length % 2 === 0;
     const currentWinner = checkWinner(newSquares);
 
     // Mise à jour locale
     setSquares(newSquares);
     setIsXNext(nextIsX);
-
-    // Si mode multijoueur local, changer le tour
-    if (mode === "multiplayer") {
-      setIsXNext(!isXNext);
-    }
 
     // Si mode online, mettre à jour l'API
     if (mode === "online" && roomId) {
@@ -221,9 +235,11 @@ const Board: React.FC = () => {
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             squares: newSquares,
-            isXNext: nextStartingPlayer === "player",
-            winner: null,
-            startingPlayer: startingPlayer, // Ajouter ceci
+            isXNext: nextIsX,
+            winner: currentWinner || null,
+            startingPlayer: startingPlayer,
+            player_symbol: playerSymbol,
+            opponent_symbol: aiSymbol,
           }),
         });
         await refreshGameState();
@@ -686,7 +702,9 @@ const Board: React.FC = () => {
       {startingPlayer && (mode !== "online" || isRoomReady) && (
         <div className="flex flex-col items-center gap-4">
           <h1 className={`text-3xl font-bold mb-4 ${winner ? "animate-bounce text-green-500" : ""}`}>
-            {winner ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}` : `Prochain coup : ${isXNext ? playerName : opponentName}`}
+            {winner
+              ? `Gagnant : ${winner === playerSymbol ? playerName : opponentName}`
+              : `Prochain coup : ${isXNext ? (playerSymbol === "X" ? playerName : opponentName) : (playerSymbol === "O" ? playerName : opponentName)}`}
           </h1>
           <div className="grid grid-cols-3 gap-4">
             {squares.map((value, index) => (
