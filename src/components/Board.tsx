@@ -27,7 +27,7 @@ const Board: React.FC = () => {
   const [drawScore, setDrawScore] = useState(0);
   const [scoreUpdated, setScoreUpdated] = useState(false);
   const [playerName, setPlayerName] = useState<string>("Joueur 1");
-  const [opponentName, setOpponentName] = useState<string>(mode === "solo" ? "IA" : "Joueur 2");
+  const [opponentName, setOpponentName] = useState<string>("Joueur 2");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [stats, setStats] = useState<StatsData>({aiwins: 0, playerwins: 0, draws: 0});
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
@@ -251,8 +251,11 @@ const Board: React.FC = () => {
     // Vérifier le gagnant et mettre à jour le leaderboard
     if (currentWinner) {
       setWinner(currentWinner);
-      await updateLeaderboard(currentWinner);
-      await updateStats(currentWinner);
+      if (!scoreUpdated) {
+        await updateLeaderboard(currentWinner);
+        await updateStats(currentWinner);
+        setScoreUpdated(true); // Empêche de mettre à jour plusieurs fois
+      }
     }
   };
 
@@ -298,41 +301,41 @@ const Board: React.FC = () => {
 
   // Mettre à jour le leaderboard
   const updateLeaderboard = useCallback(async (currentWinner: string) => {
-    // Utilisez "IA" comme nom si le mode est solo et l'IA gagne
+    if (scoreUpdated) return; // Évite la mise à jour multiple
+
     let player = "";
 
-    // Déterminer le joueur à mettre à jour dans le leaderboard
     if (mode === "solo") {
       player = currentWinner === aiSymbol ? "IA" : playerName;
     } else if (mode === "multiplayer") {
       if (currentWinner === playerSymbol) {
-        player = playerName; // Joueur 1 gagne
+        player = playerName;
       } else if (currentWinner === aiSymbol) {
-        player = opponentName; // Joueur 2 gagne
+        player = opponentName;
       } else {
-        return; // Pas de mise à jour en cas de match nul en multijoueur
+        return;
       }
     }
-
-    const score = 1;
 
     try {
       const response = await fetch("/api/leaderboard", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({player, score}),
+        body: JSON.stringify({player, score: 1}),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         alert(errorData.message);
+      } else {
+        setScoreUpdated(true); // Empêche d'autres mises à jour
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
         alert(error.message);
       }
     }
-  }, [aiSymbol, mode, opponentName, playerName, playerSymbol]);
+  }, [aiSymbol, mode, opponentName, playerName, playerSymbol, scoreUpdated]);
 
   // Sauvegarder la partie
   const saveGame = async () => {
@@ -424,9 +427,9 @@ const Board: React.FC = () => {
   }, [mode, startingPlayer, squares, makeAIMove, winner]);
 
   useEffect(() => {
-    if (mode === "solo") {
+    if (mode === "solo" && opponentName !== "IA") {
       setOpponentName("IA");
-    } else if (mode === "multiplayer" && opponentName.trim() === "") {
+    } else if (mode === "multiplayer" && opponentName === "IA") {
       setOpponentName("Joueur 2");
     }
   }, [mode, opponentName]);
@@ -447,19 +450,18 @@ const Board: React.FC = () => {
 
       setNextStartingPlayer((prev) => (prev === "player" ? "ai" : "player"));
 
-      // Utiliser `currentWinner` au lieu de `winner`
-      (async () => {
-        if (mode === "solo") {
+      // Mise à jour uniquement des statistiques
+      if (mode === "solo") {
+        (async () => {
           await updateStats(currentWinner);
-        }
-        await updateLeaderboard(currentWinner);
-      })();
+        })();
+      }
     }
 
     if (mode === "solo" && !isXNext && !winner) {
       makeAIMove();
     }
-  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats, updateLeaderboard]);
+  }, [squares, isXNext, winner, makeAIMove, playerSymbol, aiSymbol, scoreUpdated, mode, updateStats]);
 
   useEffect(() => {
     if (mode === "online" && roomId && isWaitingForOpponent) {
@@ -670,7 +672,7 @@ const Board: React.FC = () => {
       {/* Contrôles et tableau de bord */}
       {startingPlayer && (
         <div className="flex flex-col items-center gap-6">
-          {mode !== "online" && (
+          {mode === "solo" && (
             <GameControls saveGame={saveGame} loadGame={loadGame}/>
           )}
           <div className="flex flex-wrap justify-center gap-8">
