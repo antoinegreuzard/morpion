@@ -86,8 +86,13 @@ DO
     ]);
 
     return NextResponse.json({message: "Game state updated"});
-  } catch (error) {
-    console.error("Erreur dans la route POST :", error);
-    return NextResponse.json({error: "Internal Server Error", details: error.message}, {status: 500});
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Erreur dans la route POST :", error.message);
+      return NextResponse.json({error: "Internal Server Error", details: error.message}, {status: 500});
+    } else {
+      console.error("Erreur inconnue :", error);
+      return NextResponse.json({error: "Internal Server Error", details: "Erreur inconnue"}, {status: 500});
+    }
   }
 }
