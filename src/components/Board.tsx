@@ -37,6 +37,8 @@ const Board: React.FC = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isRoomReady, setIsRoomReady] = useState(false);
   const [isWaitingForOpponent, setIsWaitingForOpponent] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+  const [isOpponentJoined, setIsOpponentJoined] = useState(false);
 
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
@@ -70,16 +72,13 @@ const Board: React.FC = () => {
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             squares: Array(9).fill(null),
-            isXNext: firstPlayer === "player",
-            playerName,
-            opponentName,
+            isXNext: nextStartingPlayer === "player",
             winner: null,
           }),
         });
-
         await refreshGameState();
       } catch (error) {
-        console.error("Erreur lors de l'initialisation du jeu en ligne :", error);
+        console.error("Erreur lors de la mise à jour de l'état du jeu :", error);
       }
     }
 
@@ -132,16 +131,8 @@ const Board: React.FC = () => {
       const response = await fetch(`/api/game/${roomId}`);
       const data = await response.json();
 
-      // Si `opponentName` est défini et différent du joueur actuel, l'adversaire est présent
-      if (data.opponentName && data.opponentName !== playerName) {
-        setOpponentName(data.opponentName);
-        setIsRoomReady(true);
-        setIsWaitingForOpponent(false);
-      } else if (data.playerName === playerName) {
-        // Le joueur actuel est le créateur
-        setIsRoomReady(false);
-        setIsWaitingForOpponent(true);
-      } else if (!data.playerName && !data.opponentName) {
+      if (!data.playerName) {
+        // Créateur de la room
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
@@ -153,34 +144,24 @@ const Board: React.FC = () => {
             winner: null,
           }),
         });
-
-        setOpponentName("");
-        setIsRoomReady(false);
+        setIsCreator(true);
         setIsWaitingForOpponent(true);
-      } else if (data.playerName && !data.opponentName && data.playerName !== playerName) {
+      } else if (!data.opponentName && data.playerName !== playerName) {
+        // Joueur rejoignant la room
         await fetch(`/api/game/${roomId}`, {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            squares: data.squares,
-            isXNext: data.isXNext,
-            playerName: data.playerName,
             opponentName: playerName,
-            winner: data.winner,
           }),
         });
-
-        setOpponentName(playerName);
+        setIsOpponentJoined(true);
         setIsRoomReady(true);
-        setIsWaitingForOpponent(false);
-      } else {
-        setOpponentName("");
-        setIsRoomReady(false);
-        setIsWaitingForOpponent(true);
       }
+
+      await refreshGameState();
     } catch (error) {
-      console.error("Erreur lors de la vérification de l'adversaire :", error);
-      setIsWaitingForOpponent(true);
+      console.error("Erreur lors de la connexion à la salle :", error);
     }
   };
 
@@ -213,14 +194,14 @@ const Board: React.FC = () => {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            squares: newSquares,
-            isXNext: nextIsX,
-            winner: currentWinner,
+            squares: Array(9).fill(null),
+            isXNext: nextStartingPlayer === "player",
+            winner: null,
           }),
         });
         await refreshGameState();
       } catch (error) {
-        console.error("Erreur lors de la mise à jour du jeu en ligne :", error);
+        console.error("Erreur lors de la mise à jour de l'état du jeu :", error);
       }
     }
 
@@ -444,7 +425,6 @@ const Board: React.FC = () => {
           const response = await fetch(`/api/game/${roomId}`);
           const data = await response.json();
 
-          // Si l'adversaire (`opponentName`) est présent et différent du joueur actuel
           if (data.opponentName && data.opponentName !== playerName) {
             setOpponentName(data.opponentName);
             setIsRoomReady(true);
@@ -452,7 +432,6 @@ const Board: React.FC = () => {
           }
         } catch (error) {
           console.error("Erreur lors de la vérification de l'adversaire :", error);
-          setIsWaitingForOpponent(false);
         }
       };
 
@@ -491,8 +470,12 @@ const Board: React.FC = () => {
       setWinner(gameState.winner);
       setPlayerName(gameState.playerName || "Joueur 1");
       setOpponentName(gameState.opponentName || "Joueur 2");
+      if (gameState.opponentName && !isOpponentJoined) {
+        setIsOpponentJoined(true);
+        setIsRoomReady(true);
+      }
     }
-  }, [mode, gameState]);
+  }, [mode, gameState, isOpponentJoined]);
 
   useEffect(() => {
     if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
@@ -581,14 +564,13 @@ const Board: React.FC = () => {
       )}
 
       {/* Sélection du joueur qui commence */}
-      {(mode === "solo" || mode === "multiplayer" || (mode === "online" && roomId && isRoomReady && !isWaitingForOpponent)) && !startingPlayer && playerName.trim() && (
+      {(mode === "solo" || mode === "multiplayer") && !startingPlayer && playerName.trim() && (
         <div className="flex flex-col items-center mb-6">
           <h2 className="text-2xl font-bold mb-4">Qui commence ?</h2>
           <div className="flex gap-4">
             <button
               className="px-6 py-3 bg-blue-500 text-white rounded-lg"
               onClick={() => initializeGame("player")}
-              disabled={mode === "online"}
             >
               {playerName} commence (X)
             </button>
@@ -596,11 +578,29 @@ const Board: React.FC = () => {
               className="px-6 py-3 bg-red-500 text-white rounded-lg"
               onClick={() => initializeGame("ai")}
             >
-              {mode === "online" ? `${opponentName} commence (X)` : "IA commence (X)"}
+              IA commence (X)
             </button>
           </div>
         </div>
       )}
+
+      {isCreator && isOpponentJoined && !startingPlayer && (
+        <div className="flex gap-4">
+          <button
+            className="px-6 py-3 bg-blue-500 text-white rounded-lg"
+            onClick={() => initializeGame("player")}
+          >
+            {playerName} commence (X)
+          </button>
+          <button
+            className="px-6 py-3 bg-red-500 text-white rounded-lg"
+            onClick={() => initializeGame("ai")}
+          >
+            {opponentName} commence (X)
+          </button>
+        </div>
+      )}
+
 
       {/* Message pour l'adversaire en attente */}
       {mode === "online" && roomId && isRoomReady && !startingPlayer && !isWaitingForOpponent && (
