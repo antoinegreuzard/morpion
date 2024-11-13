@@ -198,7 +198,7 @@ const Board: React.FC = () => {
           method: "POST",
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
-            squares: Array(9).fill(null),
+            squares: newSquares,
             isXNext: nextStartingPlayer === "player",
             winner: null,
             startingPlayer: startingPlayer, // Ajouter ceci
