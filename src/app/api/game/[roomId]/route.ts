@@ -36,9 +36,9 @@ export async function GET(req: NextRequest) {
   const initialState: GameState = {
     squares: Array(9).fill(null),
     isXNext: true,
-    playerName: null,
-    opponentName: null,
-    winner: null,
+    playerName: undefined,
+    opponentName: undefined,
+    winner: undefined,
   };
   return NextResponse.json(initialState);
 }

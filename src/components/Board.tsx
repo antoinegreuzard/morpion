@@ -146,6 +146,7 @@ const Board: React.FC = () => {
         });
         setIsCreator(true);
         setIsWaitingForOpponent(true);
+        setIsRoomReady(false);
       } else if (!data.opponentName && data.playerName !== playerName) {
         // Joueur rejoignant la room
         await fetch(`/api/game/${roomId}`, {
@@ -157,6 +158,7 @@ const Board: React.FC = () => {
         });
         setIsOpponentJoined(true);
         setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
       }
 
       await refreshGameState();
@@ -470,12 +472,26 @@ const Board: React.FC = () => {
       setWinner(gameState.winner);
       setPlayerName(gameState.playerName || "Joueur 1");
       setOpponentName(gameState.opponentName || "Joueur 2");
+    }
+  }, [mode, gameState, isOpponentJoined]);
+
+  useEffect(() => {
+    if (mode === "online" && roomId && gameState) {
+      // Si l'adversaire a rejoint (opponentName est défini) et que ce n'est pas encore marqué localement
       if (gameState.opponentName && !isOpponentJoined) {
         setIsOpponentJoined(true);
         setIsRoomReady(true);
+        setIsWaitingForOpponent(false);
+      }
+
+      // Si le créateur attendait l'adversaire et que celui-ci est arrivé
+      if (isCreator && isWaitingForOpponent && gameState.opponentName) {
+        setIsWaitingForOpponent(false);
+        setIsRoomReady(true);
       }
     }
-  }, [mode, gameState, isOpponentJoined]);
+  }, [mode, roomId, gameState, isOpponentJoined, isCreator, isWaitingForOpponent]);
+
 
   useEffect(() => {
     if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
@@ -490,24 +506,6 @@ const Board: React.FC = () => {
   }, [mode, roomId, isRoomReady, playerName, refreshGameState]);
   return (
     <div className="flex flex-col items-center gap-8">
-      {/* Loading */}
-      {isWaitingForOpponent && (
-        <div className="flex flex-col items-center gap-4">
-          <h2 className="text-2xl font-bold mb-4">En attente de l&#39;adversaire...</h2>
-          <p>Partagez l&#39;ID de la salle : <span className="font-bold">{roomId}</span></p>
-          <button
-            className="px-6 py-3 bg-red-500 text-white rounded-lg"
-            onClick={() => {
-              setIsWaitingForOpponent(false);
-              setRoomId(null);
-              setMode(null);
-            }}
-          >
-            Annuler
-          </button>
-        </div>
-      )}
-
       {/* Sélection du mode de jeu */}
       {!mode && (
         <div className="flex flex-col items-center mb-6">
@@ -602,10 +600,18 @@ const Board: React.FC = () => {
       )}
 
 
-      {/* Message pour l'adversaire en attente */}
-      {mode === "online" && roomId && isRoomReady && !startingPlayer && !isWaitingForOpponent && (
+      {/* Affichage des messages d'attente */}
+      {mode === "online" && roomId && !startingPlayer && (
         <div className="flex flex-col items-center gap-4">
-          <h2 className="text-2xl font-bold mb-4">En attente du créateur pour commencer la partie...</h2>
+          {isCreator && isWaitingForOpponent && (
+            <div>
+              <h2 className="text-2xl font-bold mb-4">En attente de l&#39;adversaire...</h2>
+              <p>Partagez l&#39;ID de la salle : <span className="font-bold">{roomId}</span></p>
+            </div>
+          )}
+          {!isCreator && isRoomReady && (
+            <h2 className="text-2xl font-bold mb-4">En attente du créateur pour commencer la partie...</h2>
+          )}
         </div>
       )}
 
