@@ -42,7 +42,7 @@ const Board: React.FC = () => {
   const {data: gameState, mutate: refreshGameState} = useSWR(
     roomId ? `/api/game/${roomId}` : null,
     fetcher,
-    {revalidateOnFocus: false, revalidateOnReconnect: false, refreshInterval: 0}
+    {revalidateOnFocus: true, revalidateOnReconnect: true, refreshInterval: 0}
   );
 
   const {data: swrStats, mutate: refreshStats} = useSWR(
@@ -628,13 +628,19 @@ const Board: React.FC = () => {
         <div className="flex gap-4">
           <button
             className="px-6 py-3 bg-blue-500 text-white rounded-lg"
-            onClick={() => initializeGame("player")}
+            onClick={async () => {
+              await initializeGame("player");
+              await refreshGameState(); // Rafraîchir l'état du jeu pour tous les joueurs
+            }}
           >
             {playerName} commence (X)
           </button>
           <button
             className="px-6 py-3 bg-red-500 text-white rounded-lg"
-            onClick={() => initializeGame("ai")}
+            onClick={async () => {
+              await initializeGame("ai");
+              await refreshGameState(); // Rafraîchir l'état du jeu pour tous les joueurs
+            }}
           >
             {opponentName} commence (X)
           </button>
