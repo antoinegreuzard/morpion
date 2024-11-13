@@ -163,12 +163,6 @@ const Board: React.FC = () => {
             opponentSymbol: "O",
           }),
         });
-        if (data.player_symbol && data.opponent_symbol) {
-          setPlayerSymbol(data.player_symbol);
-          setAiSymbol(data.opponent_symbol);
-        } else {
-          console.error("Les symboles des joueurs ne sont pas définis :", data);
-        }
         setIsCreator(true);
         setIsWaitingForOpponent(true);
         setIsRoomReady(false);
@@ -181,16 +175,15 @@ const Board: React.FC = () => {
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             opponentName: playerName,
-            playerSymbol: "X", // Créateur est "X"
-            opponentSymbol: "O", // Rejoignant est "O"
+            playerSymbol: "X",
+            opponentSymbol: "O",
           }),
         });
-        setPlayerSymbol("O");
-        setAiSymbol("X");
         setIsOpponentJoined(true);
         setIsRoomReady(true);
         setIsWaitingForOpponent(false);
         setPlayerSymbol("X");
+        setAiSymbol("X");
         setOpponentSymbol("O");
       }
 
@@ -263,16 +256,12 @@ const Board: React.FC = () => {
   const makeAIMove = useCallback(() => {
     if (mode !== "solo" || isXNext || winner) return;
 
-    if (squares[4] === playerSymbol && squares.every((sq) => sq === null || sq === playerSymbol)) {
-      const cornerMoves = [0, 2, 6, 8];
-      const move = cornerMoves.find((i) => squares[i] === null);
-      if (move !== undefined) {
-        const newSquares = squares.slice();
-        newSquares[move] = aiSymbol;
-        setSquares(newSquares);
-        setIsXNext(true);
-        return;
-      }
+    if (squares[4] === null) {
+      const newSquares = squares.slice();
+      newSquares[4] = aiSymbol;
+      setSquares(newSquares);
+      setIsXNext(true);
+      return;
     }
 
     // Utiliser minimax pour déterminer le meilleur coup
@@ -330,12 +319,17 @@ const Board: React.FC = () => {
       } else {
         setScoreUpdated(true); // Empêche d'autres mises à jour
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
+    } catch (error) {
+      handleError(error);
     }
   }, [aiSymbol, mode, opponentName, playerName, playerSymbol, scoreUpdated]);
+
+  const handleError = (error: unknown) => {
+    if (error instanceof Error) {
+      console.error("Erreur :", error.message);
+      alert(error.message);
+    }
+  };
 
   // Sauvegarder la partie
   const saveGame = async () => {
@@ -351,10 +345,8 @@ const Board: React.FC = () => {
       } else {
         alert("Partie sauvegardée avec succès !");
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
+    } catch (error) {
+      handleError(error);
     }
   };
 
@@ -387,10 +379,8 @@ const Board: React.FC = () => {
         const errorData = await response.json();
         alert(errorData.message);
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
+    } catch (error) {
+      handleError(error);
     }
   };
 
@@ -413,10 +403,8 @@ const Board: React.FC = () => {
         const errorData = await response.json();
         alert(errorData.message);
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        alert(error.message);
-      }
+    } catch (error) {
+      handleError(error);
     }
   }, [aiSymbol, playerSymbol]);
 
@@ -547,16 +535,19 @@ const Board: React.FC = () => {
 
 
   useEffect(() => {
+    const fetchOpponentName = async () => {
+      await refreshGameState();
+      const response = await fetch(`/api/game/${roomId}`);
+      const data = await response.json();
+      const opponent = data.opponentName;
+      setOpponentName(opponent || "Adversaire");
+    };
+
     if (mode === "online" && roomId && isRoomReady && playerName.trim()) {
-      (async () => {
-        await refreshGameState();
-        const response = await fetch(`/api/game/${roomId}`);
-        const data = await response.json();
-        const opponent = data.opponentName;
-        setOpponentName(opponent || "Adversaire");
-      })();
+      fetchOpponentName();
     }
   }, [mode, roomId, isRoomReady, playerName, refreshGameState]);
+
   return (
     <div className="flex flex-col items-center gap-8">
       {/* Sélection du mode de jeu */}
