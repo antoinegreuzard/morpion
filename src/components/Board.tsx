@@ -175,6 +175,7 @@ const Board: React.FC = () => {
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             opponentName: playerName,
+            isXNext: true,
             playerSymbol: "X",
             opponentSymbol: "O",
           }),
